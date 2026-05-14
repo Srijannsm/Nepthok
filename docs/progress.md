@@ -26,3 +26,23 @@
 - Write and run first migration
 
 ---
+
+## Session 2 — 2026-05-14
+
+### Completed
+- Installed and configured PostgreSQL 17 locally
+- Created nepthok_dev database
+- Created root .env with DATABASE_URL, JWT secrets, ports
+- Created CLAUDE.md via /init, enriched with roles, tiers, delivery, SMS, payment, and token efficiency rules
+- Wrote complete Prisma schema — 14 models, 10 enums, all relations and constraints
+- Ran first migration: 20260514173314_init_schema — 14 tables created in PostgreSQL
+- Prisma Client generated at packages/database/generated/client
+- Prisma Studio verified at http://localhost:5555
+
+### Known Issues
+- postcss <8.5.10 inside Next.js — accepted moderate risk, documented in CLAUDE.md
+
+### Next Session
+- Phase 2: NestJS API foundation — Prisma module, config module, global exception filter, response interceptor
+
+---

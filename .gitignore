@@ -16,6 +16,7 @@ out/
 .env.test.local
 .env.production.local
 .env.*.local
+packages/database/.env
 
 # Turbo
 .turbo/

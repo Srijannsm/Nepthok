@@ -5,14 +5,14 @@
 ---
 
 ## Phase 1 — Foundation & Infrastructure
-- [x] Initialize Turborepo monorepo
-- [x] Scaffold Next.js 14 (App Router, TypeScript, Tailwind, ESLint)
-- [x] Scaffold NestJS API app (TypeScript, ESLint)
-- [x] Create `packages/database` with Prisma + PostgreSQL provider
-- [x] Create `packages/types` with shared TypeScript types
-- [x] Create `packages/utils` with shared utility functions
-- [x] Write project docs (constitution, task_plan, findings, progress)
-- [x] Initialize git repository and make first commit
+- ✅ Initialize Turborepo monorepo
+- ✅ Scaffold Next.js 14 (App Router, TypeScript, Tailwind, ESLint)
+- ✅ Scaffold NestJS API app (TypeScript, ESLint)
+- ✅ Create `packages/database` with Prisma + PostgreSQL provider
+- ✅ Create `packages/types` with shared TypeScript types
+- ✅ Create `packages/utils` with shared utility functions
+- ✅ Write project docs (constitution, task_plan, findings, progress)
+- ✅ Initialize git repository and make first commit
 
 ---
 

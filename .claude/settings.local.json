@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:brainstorming)",
+      "PowerShell(New-Item *)",
+      "Bash(Get-ChildItem -Path . -Recurse -Filter \".env*\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(npx prisma *)"
+    ]
+  }
+}
