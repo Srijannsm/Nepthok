@@ -27,6 +27,30 @@
 
 ---
 
+## Session 3 — 2026-05-15
+
+### Completed
+- NestJS API foundation: PrismaService, ConfigModule, ResponseInterceptor, HttpExceptionFilter, PrismaExceptionFilter, ValidationPipe all wired in main.ts
+- API smoke test passed: GET /api/health returns correct envelope
+- Auth module complete: JWT strategy, JwtAuthGuard, RolesGuard, TenantGuard
+- Decorators: @Roles, @CurrentUser, @CurrentTenant
+- DTOs: LoginDto, AuthResponseDto
+- Seeded first SUPER_ADMIN user: admin@nepthok.com
+- All 4 auth tests passed:
+  * Valid login returns JWT ✅
+  * Wrong password returns same error as wrong email (user enumeration prevention) ✅
+  * Valid JWT accesses protected route, no password in response ✅
+  * No token returns 401 ✅
+
+### Security Pillars Verified
+- Pillar 1: User enumeration prevention, JWT guards active
+- Pillar 3: Password field excluded from all profile responses
+
+### Next Session
+- Phase 2 continued: Tenant module (seller onboarding, tenant CRUD, tenant middleware)
+
+---
+
 ## Session 2 — 2026-05-14
 
 ### Completed

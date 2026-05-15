@@ -1,7 +1,17 @@
-// Prisma client will be exported here after `prisma generate` is run.
-// Example usage after generate:
-//
-//   import { PrismaClient } from "../generated/client";
-//   export const prisma = new PrismaClient();
-
-export {};
+export { PrismaClient, Prisma } from "../generated/client";
+export type {
+  Tenant,
+  User,
+  Plan,
+  Subscription,
+  SubscriptionPayment,
+  Category,
+  Product,
+  Order,
+  OrderItem,
+  OrderStatusHistory,
+  DiscountCode,
+  DiscountProduct,
+  StoreAnalytics,
+  ContactMessage,
+} from "../generated/client";

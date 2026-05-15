@@ -1,6 +1,6 @@
 # Task Plan — Nepthok
 
-> Last updated: 2026-05-14
+> Last updated: 2026-05-15
 
 ---
 
@@ -17,12 +17,15 @@
 ---
 
 ## Phase 2 — Data Schema & Database
-- [ ] Define core Prisma models: Tenant, User, Product, Order, Payment, Review
-- [ ] Add multi-tenant fields (`tenantId`) to all relevant models
-- [ ] Write and run initial migrations
-- [ ] Set up Prisma client singleton export in `packages/database`
+- ✅ Define core Prisma models: Tenant, User, Product, Order, Payment, Review
+- ✅ Add multi-tenant fields (`tenantId`) to all relevant models
+- ✅ Write and run initial migrations
+- ✅ Set up Prisma client singleton export in `packages/database`
+- ✅ NestJS core setup: PrismaService, ConfigModule, ResponseInterceptor, HttpExceptionFilter, PrismaExceptionFilter, ValidationPipe
+- ✅ Auth module: JWT strategy, JwtAuthGuard, RolesGuard, TenantGuard, @Roles/@CurrentUser/@CurrentTenant decorators
+- ✅ Seed script for development data (SUPER_ADMIN user seeded)
 - [ ] Add Prisma middleware for automatic tenant scoping
-- [ ] Seed script for development data
+- [ ] Tenant module (seller onboarding, tenant CRUD)
 
 ---
 
