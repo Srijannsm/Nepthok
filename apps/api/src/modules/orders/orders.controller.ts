@@ -43,6 +43,15 @@ export class OrdersController {
     return this.ordersService.trackOrder(orderNumber, email);
   }
 
+  // ─── Super admin routes ───────────────────────────────────────────────────
+
+  @Get("admin/orders")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  findAllAdmin(@Query() query: OrderQueryDto) {
+    return this.ordersService.findAllAdmin(query);
+  }
+
   // ─── Seller routes ─────────────────────────────────────────────────────────
 
   @Get("seller/orders")

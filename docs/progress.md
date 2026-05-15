@@ -163,6 +163,35 @@
 
 ---
 
+## Phase 3 — COMPLETE (2026-05-16)
+
+### Seller Admin Panel ✅
+- Login, Dashboard (role-aware), Products, Orders, Inventory, Store Settings, Subscription, Discounts (Pro-gated), Analytics (Pro-gated)
+- Auth race condition fixed: `hydrated` flag in Zustand store prevents redirect before localStorage is read
+- Dashboard: SUPER_ADMIN sees platform stats, sellers see store stats
+
+### Super Admin Panel ✅
+- Layout: sidebar with Super Admin badge, logout button, no mobile tab bar
+- Dashboard (`/superadmin`): 4 KPI cards (Total Sellers, MRR, Total Orders, Pending Approvals), Recent Stores table, Subscription breakdown
+- Sellers (`/superadmin/sellers`): search + status filter, approve/suspend with confirmation dialog, detail sheet
+- Plans (`/superadmin/plans`): plan cards with edit sheet (name, price, maxProducts, features, isActive)
+- Subscriptions (`/superadmin/subscriptions`): status filter tabs, record payment dialog, assign plan dialog
+- Categories (`/superadmin/categories`): nested tree table, add/edit sheet with slug auto-fill, deactivate confirmation
+- Orders (`/superadmin/orders`): read-only all-orders view with search + status filter, detail sheet
+- Analytics (`/superadmin/analytics`): period selector (7d/30d/90d), KPI cards, top sellers table, subscription breakdown bar chart
+
+### API additions for Super Admin ✅
+- `GET /subscriptions` (SUPER_ADMIN): paginated all-subscriptions with tenant + plan + last payment
+- `GET /admin/orders` (SUPER_ADMIN): paginated all-orders without tenantId scope
+- Both backed by `findAll()` and `findAllAdmin()` service methods
+
+### Role-based routing ✅
+- `SUPER_ADMIN` → `/superadmin`
+- `SELLER_ADMIN`/`SELLER_STAFF` → `/dashboard`
+- Unauthenticated → `/login`
+
+---
+
 ## Backend API — COMPLETE
 
 All modules built and tested:

@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Query,
   UseGuards,
@@ -22,6 +24,16 @@ import { SubscriptionsService } from "./subscriptions.service";
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class SubscriptionsController {
   constructor(private subscriptionsService: SubscriptionsService) {}
+
+  @Get()
+  @Roles(UserRole.SUPER_ADMIN)
+  findAll(
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query("limit", new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query("status") status?: string,
+  ) {
+    return this.subscriptionsService.findAll(page, limit, status);
+  }
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN)

@@ -43,6 +43,34 @@ function periodEnd(from: Date): Date {
 export class SubscriptionsService {
   constructor(private prisma: PrismaService) {}
 
+  async findAll(page: number, limit: number, status?: string) {
+    const skip = (page - 1) * limit;
+    const where = status ? { status: status as SubscriptionStatus } : {};
+
+    const [items, total] = await Promise.all([
+      this.prisma.subscription.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          plan: {
+            select: { id: true, name: true, tier: true, price: true, billingCycle: true },
+          },
+          payments: {
+            select: { id: true, amount: true, method: true, status: true, paidAt: true, transactionId: true },
+            orderBy: { createdAt: "desc" as const },
+            take: 1,
+          },
+          tenant: { select: { id: true, name: true, slug: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.subscription.count({ where }),
+    ]);
+
+    return { items, total, page, pageSize: limit, totalPages: Math.ceil(total / limit) };
+  }
+
   async create(dto: CreateSubscriptionDto) {
     const [tenant, plan] = await Promise.all([
       this.prisma.tenant.findUnique({ where: { id: dto.tenantId }, include: { subscription: true } }),

@@ -184,6 +184,39 @@ export class OrdersService {
     });
   }
 
+  async findAllAdmin(query: OrderQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.OrderWhereInput = {
+      ...(query.status && { status: query.status }),
+      ...(query.search && {
+        OR: [
+          { orderNumber: { contains: query.search, mode: "insensitive" } },
+          { buyerName: { contains: query.search, mode: "insensitive" } },
+          { buyerEmail: { contains: query.search, mode: "insensitive" } },
+        ],
+      }),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          ...ORDER_INCLUDE,
+          tenant: { select: { id: true, name: true, slug: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return { items, total, page, pageSize: limit, totalPages: Math.ceil(total / limit) };
+  }
+
   async findAll(tenantId: string, query: OrderQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
