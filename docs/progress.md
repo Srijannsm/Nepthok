@@ -148,9 +148,42 @@
 - TEST 5: Validate FAKECODE → 400 "Invalid or expired discount code" (same message — no enumeration) ✅
 - TEST 6: Place order TECH-00001 with SAVE10 — subtotal 2550, discount 255, total 2295; usedCount incremented to 1 ✅
 
-### Next Session
-- Analytics module
-- Payment gateway integration (eSewa + Khalti)
+### Analytics Module Complete — commit 5f97094
+- AnalyticsQueryDto: dateFrom, dateTo, period shortcuts (7d/30d/90d)
+- AnalyticsService: getDashboard (live fallback from Orders when no snapshots; StoreAnalytics snapshots when available), getPlatformOverview (cross-tenant summary, MRR, subscriptionBreakdown), recordDailySnapshot (upsert by tenantId+date midnight UTC), recordAllTenantsSnapshot (batch all ACTIVE tenants)
+- AnalyticsController: GET /analytics/dashboard (SELLER_ADMIN/STAFF), GET /analytics/platform (SUPER_ADMIN), POST /analytics/snapshot (SUPER_ADMIN manual trigger)
+- lowStockProducts via $queryRaw for column-to-column stock ≤ lowStockThreshold comparison
+
+**All 5 tests passed (2026-05-15):**
+- TEST 1: Seller dashboard live fallback → totalOrders: 1, topProducts, recentOrders, trend: [] ✅
+- TEST 2: Platform overview → totalTenants: 2, subscriptionBreakdown {basic:1,pro:1}, MRR: 3498 NPR ✅
+- TEST 3: Seller blocked from /analytics/platform → 403 ✅
+- TEST 4: Manual snapshot trigger → snapshotsRecorded: 2 ✅
+- TEST 5: Dashboard uses snapshot data → trend array with 2 daily records ✅
+
+---
+
+## Backend API — COMPLETE
+
+All modules built and tested:
+- Auth (JWT, guards, role decorators)
+- Tenants (onboarding, approval, middleware)
+- Plans (Basic/Pro tiers)
+- Subscriptions (lifecycle, feature gating, checkAccess)
+- Categories (platform-wide, nested)
+- Products (CRUD, stock, volume pricing, subscription gating)
+- Orders (atomic creation, state machine, wholesale pricing, guest tracking)
+- Discount Codes (Pro-gated, validation, order integration)
+- Analytics (dashboard, platform overview, daily snapshots)
+
+Bugs caught and fixed during testing:
+- Re-subscription unique constraint (update vs insert)
+- Query string number coercion (@Type(() => Number))
+- Order number global collision (tenant-prefixed slugs)
+- Prisma JSON null sentinel pattern
+- Column-to-column comparison via $queryRaw
+
+Next: Phase 3 — Frontend (Next.js seller admin panel)
 
 ---
 
