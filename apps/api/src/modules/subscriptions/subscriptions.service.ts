@@ -61,6 +61,20 @@ export class SubscriptionsService {
 
     const now = new Date();
     return this.prisma.$transaction(async (tx) => {
+      // Reuse existing record (unique tenantId) if prior sub was cancelled/expired
+      if (tenant.subscription) {
+        return tx.subscription.update({
+          where: { tenantId: dto.tenantId },
+          data: {
+            planId: dto.planId,
+            status: SubscriptionStatus.TRIAL,
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd(now),
+            cancelledAt: null,
+          },
+          include: SUBSCRIPTION_INCLUDE,
+        });
+      }
       return tx.subscription.create({
         data: {
           tenantId: dto.tenantId,

@@ -127,8 +127,28 @@
   * Full lifecycle CONFIRMED → PROCESSING → SHIPPED → DELIVERED, 5 history entries ✅
 - TODO: Discount code test (DiscountCodes module not yet built)
 
+### Discount Codes Module Complete — commit ce9119a
+- DiscountCode model: code (unique per tenant), type (PERCENTAGE/FIXED), value, minOrderAmount, maxUses, usedCount, isActive, expiresAt, discountProducts (M2M for product-scoped codes)
+- DiscountsService: create (Pro gate via subscription feature check), findAll, findOne, update, delete, validate (public — checks active, expiry, maxUses, minOrderAmount, calculates amount)
+- DiscountsController: GET /discounts/validate (public); seller CRUD with RBAC
+- Orders integration: discountCode field on CreateOrderDto, full validation + usedCount increment inside atomic transaction
+
+### Discount Codes — Tests (2026-05-15)
+
+**Bugs found and fixed during testing:**
+1. `SubscriptionsService.create()` — P2002 when re-subscribing after cancel (unique tenantId constraint). Fixed: `upsert` pattern — UPDATE existing record if cancelled, CREATE if none exists.
+2. `ValidateDiscountDto.orderAmount` — missing `@Type(() => Number)` transform; query string parsed as string, failed `@IsNumber()`. Fixed: added `class-transformer` Type decorator.
+3. `OrdersService` orderNumber — `@unique` global but counter was per-tenant; caused P2002 when two tenants both generated NTK-00001. Fixed: prefix with tenant slug (e.g. `TECH-00001`, `GADG-00001`).
+
+**All 6 tests passed:**
+- TEST 1: Basic seller blocked from creating discount code → 403 "Upgrade to Pro to use discount codes" ✅
+- TEST 2: Seller upgraded to Pro (cancel Basic → reassign Pro → record payment) → discount code created, 201 ✅
+- TEST 3: Validate SAVE10 (10%) on NPR 2000 → discountAmount: 200, finalAmount: 1800 ✅
+- TEST 4: Validate MINAMOUNT (15%, min NPR 1000) with orderAmount 500 → 400 "Minimum order amount for this code is NPR 1000" ✅
+- TEST 5: Validate FAKECODE → 400 "Invalid or expired discount code" (same message — no enumeration) ✅
+- TEST 6: Place order TECH-00001 with SAVE10 — subtotal 2550, discount 255, total 2295; usedCount incremented to 1 ✅
+
 ### Next Session
-- Discount Codes module
 - Analytics module
 - Payment gateway integration (eSewa + Khalti)
 

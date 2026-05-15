@@ -119,9 +119,10 @@ export class OrdersService {
       const shippingFee = 0;
       const total = subtotal - discountAmount + shippingFee;
 
-      // e. Generate orderNumber
+      // e. Generate orderNumber (globally unique: slug prefix + per-tenant count)
       const orderCount = await tx.order.count({ where: { tenantId: dto.tenantId } });
-      const orderNumber = `NTK-${(orderCount + 1).toString().padStart(5, "0")}`;
+      const prefix = tenant.slug.replace(/[^a-z0-9]/gi, "").substring(0, 4).toUpperCase();
+      const orderNumber = `${prefix}-${(orderCount + 1).toString().padStart(5, "0")}`;
 
       // f. Create Order
       const order = await tx.order.create({
