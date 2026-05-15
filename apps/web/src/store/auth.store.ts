@@ -7,6 +7,7 @@ interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  hydrated: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
   initAuth: () => void;
@@ -16,11 +17,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: null,
   isAuthenticated: false,
+  hydrated: false,
 
   login: (token, user) => {
     localStorage.setItem("nepthok_token", token);
     localStorage.setItem("nepthok_user", JSON.stringify(user));
-    set({ token, user, isAuthenticated: true });
+    set({ token, user, isAuthenticated: true, hydrated: true });
   },
 
   logout: () => {
@@ -36,11 +38,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (token && userRaw) {
       try {
         const user = JSON.parse(userRaw) as User;
-        set({ token, user, isAuthenticated: true });
+        set({ token, user, isAuthenticated: true, hydrated: true });
       } catch {
         localStorage.removeItem("nepthok_token");
         localStorage.removeItem("nepthok_user");
+        set({ hydrated: true });
       }
+    } else {
+      set({ hydrated: true });
     }
   },
 }));

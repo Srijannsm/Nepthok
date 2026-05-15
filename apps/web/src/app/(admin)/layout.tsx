@@ -38,11 +38,12 @@ const bottomTabItems = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, hydrated } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!hydrated) return;
     if (!isAuthenticated) {
       router.replace("/login");
       return;
@@ -50,9 +51,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (user && user.role !== "SELLER_ADMIN" && user.role !== "SELLER_STAFF") {
       router.replace("/");
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, router, hydrated]);
 
-  if (!isAuthenticated || !user) return null;
+  if (!hydrated || !isAuthenticated || !user) return null;
 
   return (
     <div className="flex h-screen bg-background">
