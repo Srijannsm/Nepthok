@@ -1,5 +1,5 @@
 // Shared utility functions for Nepthok
-import { PricingTier } from "@nepthok/types";
+import type { PricingTier } from "@nepthok/types";
 
 export function slugify(text: string): string {
   return text
@@ -68,6 +68,6 @@ export function calculatePrice(
   return {
     unitPrice: matchedTier.price,
     total: matchedTier.price * quantity,
-    tierApplied: true,
+    tierApplied: matchedTier.price !== product.price,
   };
 }

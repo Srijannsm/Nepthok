@@ -93,6 +93,20 @@
   * Atomic stock decrement (50 → 45) ✅
   * Hard delete succeeds (no orders); product recreated and activated ✅
 
+### Volume Pricing — Tested
+- pricingTiers stored per product as JSON
+- GET /products/:id/price?quantity=n returns correct tier
+- Retail (qty 5): NPR 850/pc ✅
+- Wholesale tier 1 (qty 10): NPR 720/pc ✅
+- Wholesale tier 2 (qty 50): NPR 650/pc ✅
+- Invalid price (wholesale > retail): 400 rejected ✅
+- Invalid threshold (below 10): 400 rejected ✅
+
+### Fixes in this session
+- `import type` for PricingTier in packages/utils (interface has no runtime value)
+- `tierApplied: matchedTier.price !== product.price` — false for retail tier, true only for discounted tiers
+- `turbo.json`: renamed deprecated `pipeline` → `tasks` (Turbo 2.x)
+
 ### Next Session
 - Orders module (guest checkout, order lifecycle, payment flow)
 
