@@ -36,7 +36,7 @@ export default function LoginPage() {
     try {
       const data = await post<{ accessToken: string; user: User }>("/auth/login", values);
       login(data.accessToken, data.user);
-      router.push("/dashboard");
+      router.push(data.user.role === "SUPER_ADMIN" ? "/superadmin" : "/dashboard");
     } catch {
       toast.error("Invalid email or password");
     }
