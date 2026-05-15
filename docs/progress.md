@@ -46,8 +46,22 @@
 - Pillar 1: User enumeration prevention, JWT guards active
 - Pillar 3: Password field excluded from all profile responses
 
+### Tenant Module Complete
+- TenantsService: create (atomic $transaction), findAll (paginated), findOne, findBySlug, approve, suspend, update, getMyTenant
+- TenantsController: 7 endpoints with correct @Roles guards
+- TenantMiddleware: resolves tenant from X-Tenant-Slug header or /store/:slug path
+- DTOs: CreateTenantDto (Nepal phone regex), UpdateTenantDto, TenantResponseDto
+- All 7 tenant tests passed:
+  * Atomic tenant creation ✅
+  * Duplicate slug 409 ✅
+  * Paginated admin list ✅
+  * Approval flow PENDING→ACTIVE ✅
+  * Seller login with correct tenantId in JWT ✅
+  * Seller scoped to own tenant ✅
+  * Role isolation — seller blocked from admin routes ✅
+
 ### Next Session
-- Phase 2 continued: Tenant module (seller onboarding, tenant CRUD, tenant middleware)
+- Plans module, subscription flow, seller onboarding completion
 
 ---
 
