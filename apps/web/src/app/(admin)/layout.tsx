@@ -48,7 +48,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.replace("/login");
       return;
     }
-    if (user && user.role !== "SELLER_ADMIN" && user.role !== "SELLER_STAFF") {
+    const allowed = ["SUPER_ADMIN", "SELLER_ADMIN", "SELLER_STAFF"];
+    if (user && !allowed.includes(user.role)) {
       router.replace("/");
     }
   }, [isAuthenticated, user, router, hydrated]);
