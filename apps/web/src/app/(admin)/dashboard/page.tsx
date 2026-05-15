@@ -131,8 +131,8 @@ function SellerDashboard({ userName }: { userName: string }) {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard title="Total Orders" value={String(summary?.totalOrders ?? 0)} icon={ShoppingBag} loading={isLoading} />
         <StatCard title="Total Revenue" value={formatNPR(summary?.totalRevenue ?? 0)} icon={TrendingUp} loading={isLoading} />
-        <StatCard title="Products Listed" value="—" icon={Package} loading={isLoading} />
-        <StatCard title="Low Stock Alerts" value={String(lowStockCount)} icon={AlertTriangle} loading={isLoading} alert={lowStockCount > 0} />
+        <StatCard title="Avg Order Value" value={formatNPR(summary?.averageOrderValue ?? 0)} icon={Package} loading={isLoading} />
+        <StatCard title="Low Stock Alerts" value={String(lowStockCount ?? 0)} icon={AlertTriangle} loading={isLoading} alert={lowStockCount > 0} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
