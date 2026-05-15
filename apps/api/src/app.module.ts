@@ -7,9 +7,11 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { TenantsModule } from "./modules/tenants/tenants.module";
 import { PlansModule } from "./modules/plans/plans.module";
 import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
+import { CategoriesModule } from "./modules/categories/categories.module";
+import { ProductsModule } from "./modules/products/products.module";
 
 @Module({
-  imports: [ConfigModule, PrismaModule, AuthModule, TenantsModule, PlansModule, SubscriptionsModule],
+  imports: [ConfigModule, PrismaModule, AuthModule, TenantsModule, PlansModule, SubscriptionsModule, CategoriesModule, ProductsModule],
   controllers: [AppController],
   providers: [AppService],
 })

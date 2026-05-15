@@ -66,6 +66,23 @@ async function main() {
     },
   });
   console.log("Seeded: plan pro (NPR 2499/month)");
+
+  const categories = [
+    { name: "Phone Cases", slug: "phone-cases" },
+    { name: "Chargers & Cables", slug: "chargers-cables" },
+    { name: "Screen Protectors", slug: "screen-protectors" },
+    { name: "Earphones & Headphones", slug: "earphones-headphones" },
+    { name: "Power Banks", slug: "power-banks" },
+  ];
+
+  for (const cat of categories) {
+    await prisma.category.upsert({
+      where: { slug: cat.slug },
+      update: {},
+      create: { name: cat.name, slug: cat.slug, isActive: true },
+    });
+    console.log(`Seeded: category ${cat.name}`);
+  }
 }
 
 main()
