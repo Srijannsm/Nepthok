@@ -10,9 +10,10 @@ import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.modul
 import { CategoriesModule } from "./modules/categories/categories.module";
 import { ProductsModule } from "./modules/products/products.module";
 import { OrdersModule } from "./modules/orders/orders.module";
+import { DiscountsModule } from "./modules/discounts/discounts.module";
 
 @Module({
-  imports: [ConfigModule, PrismaModule, AuthModule, TenantsModule, PlansModule, SubscriptionsModule, CategoriesModule, ProductsModule, OrdersModule],
+  imports: [ConfigModule, PrismaModule, AuthModule, TenantsModule, PlansModule, SubscriptionsModule, CategoriesModule, ProductsModule, OrdersModule, DiscountsModule],
   controllers: [AppController],
   providers: [AppService],
 })
