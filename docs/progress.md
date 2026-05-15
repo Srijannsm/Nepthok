@@ -60,8 +60,23 @@
   * Seller scoped to own tenant ✅
   * Role isolation — seller blocked from admin routes ✅
 
+### Plans Module Complete
+- PlansService: create (slug-unique), findAll (active only), findOne, update, deactivate (soft delete)
+- PlansController: GET /plans + GET /plans/:id public; POST/PATCH/DELETE SUPER_ADMIN guarded
+- Seeded: Basic (NPR 999/month, max 50 products) and Pro (NPR 2499/month, unlimited)
+
+### Subscriptions Module Complete — commit f0447b2
+- SubscriptionsService: create (TRIAL), recordPayment (atomic tx → ACTIVE + period reset), findByTenant, checkAccess, expire, cancel
+- SubscriptionsController: 5 endpoints with correct role guards
+- All 5 subscription tests passed:
+  * Assign Basic plan → status TRIAL ✅
+  * Record ESEWA payment → status ACTIVE, period reset ✅
+  * Seller fetches own subscription with plan + payment history ✅
+  * Feature gate: order_management → true (Basic feature) ✅
+  * Feature gate: sms_messaging → false (Pro-only feature) ✅
+
 ### Next Session
-- Plans module, subscription flow, seller onboarding completion
+- Products module (CRUD, images, stock management, tenant scoping)
 
 ---
 
