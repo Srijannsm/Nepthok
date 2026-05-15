@@ -75,8 +75,26 @@
   * Feature gate: order_management → true (Basic feature) ✅
   * Feature gate: sms_messaging → false (Pro-only feature) ✅
 
+### Categories Module Complete
+- CategoriesService: create (slug-unique), findAll (nested children), findOne, update, deactivate (blocks if active children)
+- CategoriesController: GET public; POST/PATCH/DELETE SUPER_ADMIN
+- Seeded 5 categories: Phone Cases, Chargers & Cables, Screen Protectors, Earphones & Headphones, Power Banks
+
+### Products Module Complete — commit 50f1820
+- ProductsService: create (subscription+plan-limit gate), findAll (tenant-scoped), findAllAdmin, findPublic, findOne, findOnePublic, update (pending-order check on archive), updateStock (atomic tx), delete (blocks if order history)
+- ProductsController: @Controller() — public/seller/admin route groups in one file
+- All 8 product tests passed:
+  * Public categories visible without auth ✅
+  * Seller creates DRAFT product (subscription gated) ✅
+  * DRAFT hidden from public browse ✅
+  * Seller activates product → ACTIVE ✅
+  * Public sees ACTIVE product ✅
+  * Search + price filter works ✅
+  * Atomic stock decrement (50 → 45) ✅
+  * Hard delete succeeds (no orders); product recreated and activated ✅
+
 ### Next Session
-- Products module (CRUD, images, stock management, tenant scoping)
+- Orders module (guest checkout, order lifecycle, payment flow)
 
 ---
 
