@@ -107,8 +107,30 @@
 - `tierApplied: matchedTier.price !== product.price` — false for retail tier, true only for discounted tiers
 - `turbo.json`: renamed deprecated `pipeline` → `tasks` (Turbo 2.x)
 
+### Orders Module Complete — commit b12883b
+- CreateOrderDto: buyer details, ShippingAddressDto, OrderItemDto, PaymentMethod enum
+- UpdateOrderStatusDto, OrderQueryDto (pagination, status, search, dateFrom/dateTo)
+- OrdersService: atomic $transaction create (tenant check, stock validation, discount code
+  validation, calculatePrice per item, orderNumber generation NTK-XXXXX, stock decrement,
+  usedCount increment); state machine updateStatus; trackOrder (orderNumber+email — enumeration safe)
+- OrdersController: POST /orders + GET /orders/track (public); GET/PATCH/DELETE seller routes with RBAC
+- All 10 order tests passed (Gadget Hub tenant — pricing tiers active):
+  * Retail order (qty 3): NTK-00001, subtotal NPR 2550 (850×3), status PENDING ✅
+  * Wholesale order (qty 10): NTK-00002, subtotal NPR 7200 (720×10) via tier ✅
+  * Stock decremented atomically: 200 → 187 (−3 −10) ✅
+  * Seller sees paginated order list, total: 2 ✅
+  * Seller confirms order: PENDING → CONFIRMED, statusHistory 2 entries ✅
+  * Invalid transition CONFIRMED → DELIVERED: 400 "Invalid status transition" ✅
+  * Buyer tracks by orderNumber + email: returns status + items ✅
+  * Wrong email returns 404 (same error as non-existent — prevents order enumeration) ✅
+  * qty 300 with stock 187: 400 "Insufficient stock for: iPhone 15 Silicone Case" ✅
+  * Full lifecycle CONFIRMED → PROCESSING → SHIPPED → DELIVERED, 5 history entries ✅
+- TODO: Discount code test (DiscountCodes module not yet built)
+
 ### Next Session
-- Orders module (guest checkout, order lifecycle, payment flow)
+- Discount Codes module
+- Analytics module
+- Payment gateway integration (eSewa + Khalti)
 
 ---
 
