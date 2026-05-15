@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -29,6 +30,16 @@ export class ProductsController {
   @Get("products")
   findPublic(@Query() query: ProductQueryDto) {
     return this.productsService.findPublic(query);
+  }
+
+  @Get("products/:id/price")
+  getPricingForQuantity(
+    @Param("id") id: string,
+    @Query("quantity") quantity: string,
+  ) {
+    const qty = parseInt(quantity, 10);
+    if (!qty || qty < 1) throw new BadRequestException("quantity must be a positive integer");
+    return this.productsService.getPricingForQuantity(id, qty);
   }
 
   @Get("products/:id")

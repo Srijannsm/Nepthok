@@ -60,4 +60,12 @@ export class CreateProductDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsArray()
+  pricingTiers?: {
+    minQty: number;
+    maxQty: number | null;
+    price: number;
+  }[];
 }

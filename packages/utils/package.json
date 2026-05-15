@@ -9,6 +9,9 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint src/**/*.ts"
   },
+  "dependencies": {
+    "@nepthok/types": "*"
+  },
   "devDependencies": {
     "typescript": "^5.4.0"
   }

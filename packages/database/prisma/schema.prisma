@@ -254,6 +254,9 @@ model Product {
   // Flexible extra attributes (color, brand, dimensions, etc.)
   metadata Json?
 
+  // Volume/wholesale pricing tiers — array of { minQty, maxQty, price }
+  pricingTiers Json?
+
   orderItems       OrderItem[]
   discountProducts DiscountProduct[]
 

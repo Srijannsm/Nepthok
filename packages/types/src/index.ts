@@ -15,3 +15,14 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   page: number;
   pageSize: number;
 }
+
+export interface PricingTier {
+  minQty: number;
+  maxQty: number | null;
+  price: number;
+}
+
+export interface ProductWithTiers {
+  price: number;
+  pricingTiers?: PricingTier[] | null;
+}

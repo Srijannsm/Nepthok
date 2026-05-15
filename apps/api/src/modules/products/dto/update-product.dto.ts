@@ -73,4 +73,12 @@ export class UpdateProductDto {
   @IsOptional()
   @IsEnum(ProductStatus)
   status?: ProductStatus;
+
+  @IsOptional()
+  @IsArray()
+  pricingTiers?: {
+    minQty: number;
+    maxQty: number | null;
+    price: number;
+  }[];
 }

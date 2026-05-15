@@ -5,11 +5,13 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { OrderStatus, Prisma, ProductStatus, SubscriptionStatus } from "@nepthok/database";
+import { calculatePrice } from "@nepthok/utils";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { CreateProductDto } from "./dto/create-product.dto";
 import { ProductQueryDto } from "./dto/product-query.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
+import { validatePricingTiers } from "./pricing-tiers.validator";
 
 const PRODUCT_BASE = {
   category: { select: { id: true, name: true, slug: true } },
@@ -62,6 +64,11 @@ export class ProductsService {
     });
     if (slugTaken) throw new BadRequestException("Product slug is already taken in this store");
 
+    if (dto.pricingTiers && dto.pricingTiers.length > 0) {
+      const tierError = validatePricingTiers(dto.pricingTiers);
+      if (tierError) throw new BadRequestException(tierError);
+    }
+
     return this.prisma.product.create({
       data: {
         tenantId,
@@ -77,6 +84,7 @@ export class ProductsService {
         categoryId: dto.categoryId,
         isFeatured: dto.isFeatured ?? false,
         metadata: dto.metadata !== undefined ? (dto.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
+        pricingTiers: dto.pricingTiers ? (dto.pricingTiers as Prisma.InputJsonValue) : Prisma.JsonNull,
         status: ProductStatus.DRAFT,
       },
       include: PRODUCT_BASE,
@@ -197,6 +205,11 @@ export class ProductsService {
       if (slugTaken) throw new BadRequestException("Product slug is already taken in this store");
     }
 
+    if (dto.pricingTiers && dto.pricingTiers.length > 0) {
+      const tierError = validatePricingTiers(dto.pricingTiers);
+      if (tierError) throw new BadRequestException(tierError);
+    }
+
     return this.prisma.product.update({
       where: { id },
       data: {
@@ -213,6 +226,9 @@ export class ProductsService {
         ...(dto.isFeatured !== undefined && { isFeatured: dto.isFeatured }),
         ...(dto.metadata !== undefined && { metadata: dto.metadata as Prisma.InputJsonValue }),
         ...(dto.status !== undefined && { status: dto.status }),
+        ...(dto.pricingTiers !== undefined && {
+          pricingTiers: dto.pricingTiers as Prisma.InputJsonValue,
+        }),
       },
       include: PRODUCT_BASE,
     });
@@ -231,6 +247,21 @@ export class ProductsService {
         include: PRODUCT_BASE,
       });
     });
+  }
+
+  async getPricingForQuantity(productId: string, quantity: number) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, status: ProductStatus.ACTIVE },
+    });
+    if (!product) throw new NotFoundException("Product not found");
+
+    const numericPrice = Number(product.price);
+    const result = calculatePrice(
+      { price: numericPrice, pricingTiers: product.pricingTiers },
+      quantity,
+    );
+
+    return { ...result, quantity };
   }
 
   async delete(id: string, tenantId: string) {

@@ -1,4 +1,5 @@
 // Shared utility functions for Nepthok
+import { PricingTier } from "@nepthok/types";
 
 export function slugify(text: string): string {
   return text
@@ -31,4 +32,42 @@ export function omit<T extends object, K extends keyof T>(
   const result = { ...obj };
   keys.forEach((k) => delete result[k]);
   return result;
+}
+
+export function calculatePrice(
+  product: { price: number; pricingTiers?: unknown },
+  quantity: number
+): { unitPrice: number; total: number; tierApplied: boolean } {
+  if (
+    !product.pricingTiers ||
+    !Array.isArray(product.pricingTiers) ||
+    product.pricingTiers.length === 0
+  ) {
+    return {
+      unitPrice: product.price,
+      total: product.price * quantity,
+      tierApplied: false,
+    };
+  }
+
+  const tiers = product.pricingTiers as PricingTier[];
+  const matchedTier = tiers.find(
+    (tier) =>
+      quantity >= tier.minQty &&
+      (tier.maxQty === null || quantity <= tier.maxQty)
+  );
+
+  if (!matchedTier) {
+    return {
+      unitPrice: product.price,
+      total: product.price * quantity,
+      tierApplied: false,
+    };
+  }
+
+  return {
+    unitPrice: matchedTier.price,
+    total: matchedTier.price * quantity,
+    tierApplied: true,
+  };
 }
