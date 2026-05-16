@@ -54,7 +54,7 @@ docs/              — constitution.md, task_plan.md, findings.md, progress.md
 
 - Every tenant-scoped database table has a non-nullable `tenantId` column.
 - `tenantId` is resolved from the authenticated JWT server-side — never accepted from the request body.
-- Prisma middleware will enforce automatic tenant scoping on all tenant-scoped models (Phase 2).
+- Prisma middleware (`tenant-scope.middleware.ts`) enforces automatic tenant scoping on all tenant-scoped models via AsyncLocalStorage.
 - File storage is namespaced: `/uploads/{tenantId}/...`.
 
 ## API Contract
@@ -84,8 +84,14 @@ Database: **PostgreSQL 15+**. Currency: **NPR only** at launch. Payments: **eSew
 ## Phase Status
 
 See `docs/task_plan.md` for the full phase checklist. Current state:
-- **Phase 1 (Foundation):** Complete
-- **Phase 2 (Data Schema):** Next — define Prisma models, run first migration, set up tenant scoping middleware
+- **Phase 1 ✅ Foundation** — Monorepo, scaffolding, shared packages
+- **Phase 2 ✅ Backend API** — 9 modules (auth, tenants, plans, subscriptions, categories, products, orders, discounts, analytics)
+- **Phase 3 ✅ Frontend** — Seller admin panel + super admin panel
+- **Phase 4 🔄 Public Marketplace** — In progress (buyer-facing storefront, product discovery, cart, checkout)
+- **Phase 5 ⬜ Payments** — eSewa + Khalti integration
+- **Phase 6 ⬜ Reviews** — Star ratings, moderation
+- **Phase 7 ⬜ SMS + Notifications** — External SMS module integration
+- **Phase 8 ⬜ DevOps + Launch** — Docker, CI/CD, DigitalOcean
 
 ## Roles & Permissions
 - SUPER_ADMIN: full platform access, approves sellers, manages plans, sees all analytics

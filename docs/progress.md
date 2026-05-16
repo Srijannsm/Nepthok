@@ -2,6 +2,28 @@
 
 ---
 
+## Session 4 — 2026-05-16
+
+**Goal:** Fix super admin redirect, implement Prisma tenant scoping middleware, update stale docs.
+
+### Super Admin Login Redirect
+- Verified login page already reads `data.user.role` directly from API response (line 36 of `apps/web/src/app/login/page.tsx`) — no store hydration dependency. Bug was already fixed in commit `11c73d2`. No code change needed.
+
+### Prisma Tenant Scoping Middleware
+- Created `apps/api/src/prisma/tenant-context.ts`: `AsyncLocalStorage`-based context with `setTenantContext(tenantId, fn)` and `getTenantId()`.
+- Created `apps/api/src/prisma/tenant-scope.middleware.ts`: `Prisma.Middleware` that injects `tenantId` into `findMany`, `findFirst`, `update`, `delete` operations for: Product, Order, OrderItem, DiscountCode, StoreAnalytics, ContactMessage. Converts `findUnique` → `findFirst` to support the tenantId filter alongside a unique id.
+- Updated `apps/api/src/common/middleware/tenant.middleware.ts`: wraps `next()` in `setTenantContext(tenant.id, ...)` so all downstream async operations inherit the tenant context. No-slug (SUPER_ADMIN) path uses `setTenantContext(null, ...)`.
+- Updated `apps/api/src/prisma/prisma.service.ts`: registers `tenantScopeMiddleware` via `this.$use()` in `onModuleInit`.
+
+### Documentation Updated
+- `CLAUDE.md`: Phase Status section updated to reflect Phases 1–3 complete, Phase 4 in progress.
+- `docs/constitution.md`: Data Schema section filled in with all 12 models and key fields; Auth Strategy updated from "TBD" to "JWT (NestJS Passport + @nestjs/jwt)"; Tenant Isolation Rule 3 updated to reflect middleware is implemented.
+- `docs/task_plan.md`: Phase 2 remaining items marked ✅; Phase 3 section replaced with accurate frontend completion checklist; Phase 4 title updated to "Public Marketplace 🔄 (in progress)".
+
+**Phase 4 starts next.**
+
+---
+
 ## Session 1 — 2026-05-14
 
 **Goal:** Initialize the full project foundation before writing any application code.

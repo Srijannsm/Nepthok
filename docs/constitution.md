@@ -14,7 +14,7 @@ Nepthok is a multi-tenant SaaS marketplace built for the Nepali market. It enabl
 | Backend API | NestJS, TypeScript |
 | Database | PostgreSQL via Prisma ORM |
 | Monorepo | Turborepo with npm workspaces |
-| Auth | To be decided (JWT / NextAuth / Clerk) |
+| Auth | JWT (NestJS Passport + @nestjs/jwt) |
 | Payments | eSewa, Khalti |
 | SMS | To be documented |
 | Hosting | DigitalOcean (Droplets / App Platform) |
@@ -48,18 +48,31 @@ The following five areas MUST be audited before each production release:
 
 ## Data Schema
 
-> Placeholder — to be filled in Phase 2.
+Defined in `packages/database/prisma/schema.prisma`. 14 models, 10 enums.
 
-Core models planned:
+**Core tenant-scoped models** (all carry a non-nullable `tenantId`):
 
-- **Tenant** — represents a marketplace seller/vendor
-- **User** — buyer or admin; linked to a tenant
-- **Product / Service** — listing created by a tenant
-- **Order** — purchase by a user
-- **Payment** — payment record linked to an order
-- **Review** — user review on a product/service
+| Model | Key fields |
+|---|---|
+| **Tenant** | id, name, slug, status (PENDING/ACTIVE/SUSPENDED/CANCELLED), ownerId |
+| **Product** | id, tenantId, name, slug, price, comparePrice, stock, lowStockThreshold, status (DRAFT/ACTIVE/ARCHIVED), categoryId, pricingTiers (JSON) |
+| **Order** | id, tenantId, orderNumber (tenant-prefixed, e.g. TECH-00001), status (state machine), buyerName/Email/Phone, shippingAddress (JSON), subtotal/shippingFee/discount/total, paymentMethod/Status |
+| **OrderItem** | id, orderId, tenantId (denormalized), productId, productName snapshot, quantity, unitPrice, total |
+| **DiscountCode** | id, tenantId, code, type (PERCENTAGE/FIXED), value, minOrderAmount, maxUses, usedCount, expiresAt |
+| **StoreAnalytics** | id, tenantId, date (midnight UTC, unique per tenant+day), totalOrders, totalRevenue, totalProductViews |
+| **ContactMessage** | id, tenantId (nullable — null = platform-level), name, email, message, isRead |
 
-Full schema will be defined in `packages/database/prisma/schema.prisma`.
+**Platform-scoped models** (no tenantId):
+
+| Model | Key fields |
+|---|---|
+| **User** | id, email, password (hashed), role (SUPER_ADMIN/SELLER_ADMIN/SELLER_STAFF), tenantId (nullable — null for SUPER_ADMIN) |
+| **Plan** | id, tier (BASIC/PRO), price, billingCycle, maxProducts (null = unlimited), features (JSON) |
+| **Subscription** | id, tenantId @unique, planId, status (TRIAL/ACTIVE/PAST_DUE/CANCELLED/EXPIRED), currentPeriodStart/End |
+| **SubscriptionPayment** | id, subscriptionId, tenantId (denormalized), amount, method, status, transactionId @unique |
+| **Category** | id, name, slug @unique, parentId (self-referential tree), isActive |
+
+**Tenant middleware:** `apps/api/src/prisma/tenant-scope.middleware.ts` automatically injects `tenantId` into `findMany`, `findFirst`, `update`, `delete` queries for the 6 tenant-scoped models. `findUnique` is downgraded to `findFirst` to support the filter. SUPER_ADMIN requests bypass it via `setTenantContext(null, ...)` in `TenantMiddleware`.
 
 ---
 
@@ -78,6 +91,6 @@ Full schema will be defined in `packages/database/prisma/schema.prisma`.
 
 1. Every tenant-scoped database table has a non-nullable `tenantId` column.
 2. The API resolves `tenantId` from the authenticated JWT; it is never accepted as a user-supplied parameter in request bodies.
-3. Prisma middleware will enforce automatic `tenantId` scoping on all tenant-scoped models (to be implemented in Phase 2).
+3. Prisma middleware (`tenant-scope.middleware.ts`) enforces automatic `tenantId` scoping on all tenant-scoped models via AsyncLocalStorage. Implemented in Phase 2.
 4. Super-admin routes (cross-tenant reads) are separate, explicitly guarded, and audited.
 5. File storage (images, documents) is namespaced by `tenantId` (e.g., `/uploads/{tenantId}/...`).

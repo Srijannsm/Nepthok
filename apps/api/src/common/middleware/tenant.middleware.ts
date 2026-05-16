@@ -2,6 +2,7 @@ import { Injectable, NestMiddleware, NotFoundException } from "@nestjs/common";
 import { TenantStatus } from "@nepthok/database";
 import { NextFunction, Request, Response } from "express";
 import { PrismaService } from "../../prisma/prisma.service";
+import { setTenantContext } from "../../prisma/tenant-context";
 
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
@@ -16,7 +17,7 @@ export class TenantMiddleware implements NestMiddleware {
     const slug = slugFromHeader ?? slugFromPath;
 
     if (!slug) {
-      return next();
+      return setTenantContext(null, () => next());
     }
 
     const tenant = await this.prisma.tenant.findUnique({ where: { slug } });
@@ -26,6 +27,6 @@ export class TenantMiddleware implements NestMiddleware {
     }
 
     req.tenant = tenant;
-    next();
+    setTenantContext(tenant.id, () => next());
   }
 }

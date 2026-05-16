@@ -1,6 +1,6 @@
 # Task Plan — Nepthok
 
-> Last updated: 2026-05-15
+> Last updated: 2026-05-16
 
 ---
 
@@ -24,23 +24,21 @@
 - ✅ NestJS core setup: PrismaService, ConfigModule, ResponseInterceptor, HttpExceptionFilter, PrismaExceptionFilter, ValidationPipe
 - ✅ Auth module: JWT strategy, JwtAuthGuard, RolesGuard, TenantGuard, @Roles/@CurrentUser/@CurrentTenant decorators
 - ✅ Seed script for development data (SUPER_ADMIN user seeded)
-- [ ] Add Prisma middleware for automatic tenant scoping
-- [ ] Tenant module (seller onboarding, tenant CRUD)
+- ✅ Add Prisma middleware for automatic tenant scoping
+- ✅ Tenant module (seller onboarding, tenant CRUD)
 
 ---
 
-## Phase 3 — Authentication & Tenancy
-- [ ] Choose auth strategy (JWT / NextAuth / Clerk) and document decision
-- [ ] Implement registration and login endpoints in NestJS
-- [ ] JWT issuance, refresh, and revocation
-- [ ] Tenant creation flow (on-boarding a new vendor)
-- [ ] Role-based access control (buyer, seller, admin)
-- [ ] Auth guards on all protected API routes
-- [ ] Session handling in Next.js frontend
+## Phase 3 — Seller Admin + Super Admin Frontend ✅
+- ✅ Login page (JWT, role-aware redirect: SUPER_ADMIN → /superadmin, sellers → /dashboard)
+- ✅ Seller admin panel: Dashboard, Products, Orders, Inventory, Store Settings, Subscription, Discounts (Pro-gated), Analytics (Pro-gated)
+- ✅ Super admin panel: Dashboard, Sellers, Plans, Subscriptions, Categories, Orders, Analytics
+- ✅ NK design system (primitives: Icon, Logo, layout tokens)
+- ✅ Role-based routing with Zustand auth store + hydration guard
 
 ---
 
-## Phase 4 — Core Marketplace Features
+## Phase 4 — Public Marketplace 🔄 (in progress)
 - [ ] Tenant profile management (CRUD)
 - [ ] Product/service listing CRUD for tenants
 - [ ] Product image upload (tenant-namespaced storage)
