@@ -1,6 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── NK Design System ─────────────────────────────────────────────────── */
+.nk-root {
+  --nk-font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --nk-font-mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+  --nk-accent: #4f46e5;
+  --nk-accent-fg: #ffffff;
+  --nk-accent-hover: #4338ca;
+  --nk-accent-soft: rgba(79,70,229,0.10);
+  --nk-accent-soft-strong: rgba(79,70,229,0.16);
+  --nk-success: #16a34a;
+  --nk-success-soft: rgba(22,163,74,0.10);
+  --nk-warning: #d97706;
+  --nk-warning-soft: rgba(217,119,6,0.10);
+  --nk-danger: #dc2626;
+  --nk-danger-soft: rgba(220,38,38,0.10);
+  --nk-info: #0891b2;
+  --nk-info-soft: rgba(8,145,178,0.10);
+  --nk-row-h: 38px;
+  --nk-cell-py: 10px;
+  --nk-cell-px: 12px;
+  --nk-card-p: 18px;
+  --nk-gap: 16px;
+  --nk-r-sm: 5px;
+  --nk-r-md: 7px;
+  --nk-r-lg: 10px;
+  font-family: var(--nk-font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color: var(--nk-fg);
+  background: var(--nk-bg);
+}
+.nk-root.nk-light {
+  --nk-bg: #fafafa;
+  --nk-bg-2: #f5f5f4;
+  --nk-surface: #ffffff;
+  --nk-surface-2: #fafafa;
+  --nk-surface-hover: #f5f5f4;
+  --nk-fg: #0a0a0a;
+  --nk-fg-2: #404040;
+  --nk-muted: #737373;
+  --nk-muted-2: #a3a3a3;
+  --nk-border: rgba(0,0,0,0.08);
+  --nk-border-strong: rgba(0,0,0,0.14);
+  --nk-input-bg: #ffffff;
+  --nk-shadow-sm: 0 1px 0 rgba(0,0,0,0.03),0 1px 2px rgba(0,0,0,0.04);
+  --nk-shadow-md: 0 1px 0 rgba(0,0,0,0.03),0 4px 16px rgba(0,0,0,0.06);
+  --nk-shadow-lg: 0 1px 0 rgba(0,0,0,0.04),0 12px 40px rgba(0,0,0,0.10);
+}
+.nk-root.nk-dark {
+  --nk-bg: #0a0a0a;
+  --nk-bg-2: #0f0f10;
+  --nk-surface: #111113;
+  --nk-surface-2: #141417;
+  --nk-surface-hover: #1a1a1d;
+  --nk-fg: #fafafa;
+  --nk-fg-2: #d4d4d8;
+  --nk-muted: #a1a1aa;
+  --nk-muted-2: #71717a;
+  --nk-border: rgba(255,255,255,0.08);
+  --nk-border-strong: rgba(255,255,255,0.14);
+  --nk-input-bg: #18181b;
+  --nk-shadow-sm: 0 1px 0 rgba(0,0,0,0.4),0 1px 2px rgba(0,0,0,0.3);
+  --nk-shadow-md: 0 1px 0 rgba(0,0,0,0.4),0 4px 16px rgba(0,0,0,0.4);
+  --nk-shadow-lg: 0 1px 0 rgba(0,0,0,0.4),0 12px 40px rgba(0,0,0,0.6);
+}
+.nk-root *,.nk-root *::before,.nk-root *::after { box-sizing: border-box; }
+.nk-root button { font-family: inherit; }
+.nk-root input,.nk-root textarea,.nk-root select { font-family: inherit; color: inherit; }
+.nk-tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum','cv11'; }
+.nk-mono { font-family: var(--nk-font-mono); }
+.nk-eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--nk-muted); }
+.nk-card { background: var(--nk-surface); border: 1px solid var(--nk-border); border-radius: var(--nk-r-lg); box-shadow: var(--nk-shadow-sm); }
+.nk-card-hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--nk-border); min-height: 50px; }
+.nk-card-hd h3 { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; margin: 0; color: var(--nk-fg); }
+.nk-input { width: 100%; height: 36px; padding: 0 12px; background: var(--nk-input-bg); border: 1px solid var(--nk-border-strong); border-radius: var(--nk-r-md); font-size: 13.5px; color: var(--nk-fg); outline: none; transition: border-color .12s,box-shadow .12s; }
+.nk-input::placeholder { color: var(--nk-muted-2); }
+.nk-input:hover { border-color: var(--nk-fg-2); }
+.nk-input:focus { border-color: var(--nk-accent); box-shadow: 0 0 0 3px var(--nk-accent-soft); }
+.nk-label { display: block; font-size: 12px; font-weight: 500; color: var(--nk-fg-2); margin-bottom: 6px; }
+.nk-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: var(--nk-r-md); border: 1px solid transparent; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .12s,border-color .12s,color .12s; white-space: nowrap; user-select: none; background: transparent; }
+.nk-btn:active { transform: translateY(0.5px); }
+.nk-btn-primary { background: var(--nk-accent); color: var(--nk-accent-fg); border-color: transparent; }
+.nk-btn-primary:hover { background: var(--nk-accent-hover); }
+.nk-btn-secondary { background: var(--nk-surface); border-color: var(--nk-border-strong); color: var(--nk-fg); }
+.nk-btn-secondary:hover { background: var(--nk-surface-hover); }
+.nk-btn-ghost { background: transparent; color: var(--nk-fg); }
+.nk-btn-ghost:hover { background: var(--nk-surface-hover); }
+.nk-btn-sm { height: 28px; padding: 0 10px; font-size: 12px; gap: 4px; }
+.nk-btn-icon { width: 32px; padding: 0; }
+.nk-badge { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 4px; font-size: 11px; font-weight: 500; border: 1px solid var(--nk-border); background: var(--nk-surface-2); color: var(--nk-fg-2); white-space: nowrap; line-height: 1; }
+.nk-badge .nk-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.nk-badge-success { color: var(--nk-success); background: var(--nk-success-soft); border-color: transparent; }
+.nk-badge-warn    { color: var(--nk-warning); background: var(--nk-warning-soft); border-color: transparent; }
+.nk-badge-danger  { color: var(--nk-danger);  background: var(--nk-danger-soft);  border-color: transparent; }
+.nk-badge-info    { color: var(--nk-info);    background: var(--nk-info-soft);    border-color: transparent; }
+.nk-badge-accent  { color: var(--nk-accent);  background: var(--nk-accent-soft);  border-color: transparent; }
+.nk-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.nk-table th { text-align: left; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--nk-muted); padding: 10px var(--nk-cell-px); border-bottom: 1px solid var(--nk-border); background: var(--nk-surface-2); white-space: nowrap; }
+.nk-table td { padding: var(--nk-cell-py) var(--nk-cell-px); border-bottom: 1px solid var(--nk-border); color: var(--nk-fg); vertical-align: middle; }
+.nk-table tr:last-child td { border-bottom: 0; }
+.nk-table tr.nk-clickable { cursor: pointer; }
+.nk-table tr.nk-clickable:hover td { background: var(--nk-surface-hover); }
+.nk-table .nk-num { text-align: right; font-variant-numeric: tabular-nums; }
+.nk-progress { width: 100%; height: 4px; background: var(--nk-bg-2); border-radius: 999px; overflow: hidden; }
+.nk-progress > div { height: 100%; background: var(--nk-accent); border-radius: 999px; transition: width .4s; }
+.nk-progress.nk-warn > div { background: var(--nk-warning); }
+.nk-progress.nk-danger > div { background: var(--nk-danger); }
+.nk-nav-link { display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 9px; border-radius: var(--nk-r-md); font-size: 13px; color: var(--nk-fg-2); cursor: pointer; transition: background .12s,color .12s; user-select: none; text-decoration: none; border: 0; background: transparent; width: 100%; text-align: left; font-family: inherit; }
+.nk-nav-link:hover { background: var(--nk-surface-hover); color: var(--nk-fg); }
+.nk-nav-link.is-active { background: var(--nk-surface-hover); color: var(--nk-fg); font-weight: 500; }
+.nk-scroll { scrollbar-width: thin; scrollbar-color: var(--nk-border-strong) transparent; }
+.nk-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.nk-scroll::-webkit-scrollbar-thumb { background: var(--nk-border-strong); border-radius: 6px; }
+.nk-row { transition: background .1s; }
+.nk-row:hover { background: var(--nk-surface-hover); }
+.nk-sep { display: inline-block; width: 3px; height: 3px; border-radius: 50%; background: var(--nk-muted-2); vertical-align: middle; margin: 0 8px; }
+.nk-logo-mark { display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; background: var(--nk-fg); color: var(--nk-bg); font-weight: 700; font-size: 13px; letter-spacing: -0.02em; position: relative; overflow: hidden; }
+.nk-logo-mark::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg,transparent 50%,var(--nk-accent) 50%); opacity: .85; }
+.nk-logo-mark span { position: relative; z-index: 1; color: #fff; mix-blend-mode: difference; }
+@keyframes nk-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.nk-fade { animation: nk-fade-in .22s ease both; }
 
 @layer base {
   :root {

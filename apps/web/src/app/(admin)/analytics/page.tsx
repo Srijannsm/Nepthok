@@ -1,56 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Lock, TrendingUp, ShoppingBag, Package } from "lucide-react";
-import {
-  LineChart, Line, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { get } from "@/lib/api";
-import { formatNPR } from "@/lib/utils";
-import { PageHeader } from "../../../components/shared/page-header";
+import { fmtRs, Icon, AreaChart, Badge } from "@/components/nk/primitives";
 
-interface AccessCheck {
-  hasAccess: boolean;
-}
-
-interface DashboardSummary {
-  totalOrders: number;
-  totalRevenue: number;
-  averageOrderValue: number;
-  totalProductViews: number;
-}
-
-interface RecentOrder {
-  id: string;
-  orderNumber: string;
-  buyerName: string;
-  total: string;
-  status: string;
-  createdAt: string;
-}
-
-interface LowStockProduct {
-  id: string;
-  name: string;
-  stock: number;
-  lowStockThreshold: number;
-}
+interface AccessCheck { hasAccess: boolean; }
 
 interface DashboardData {
-  summary: DashboardSummary;
-  recentOrders: RecentOrder[];
-  lowStockProducts: LowStockProduct[];
-  snapshots?: Array<{ date: string; orders: number; revenue: number }>;
+  summary: { totalOrders: number; totalRevenue: number; averageOrderValue: number; totalProductViews?: number };
+  lowStockProducts: { id: string; name: string; stock: number; lowStockThreshold: number }[];
+  topProducts?: { id: string; name: string; price: number; sold30?: number }[];
+  trend?: number[];
+  snapshots?: { date: string; orders: number; revenue: number }[];
 }
-
-const PERIODS = [
-  { label: "7 days", value: "7d" },
-  { label: "30 days", value: "30d" },
-  { label: "90 days", value: "90d" },
-];
 
 export default function AnalyticsPage() {
   const { data: access, isLoading: accessLoading } = useQuery<AccessCheck>({
@@ -66,10 +28,10 @@ export default function AnalyticsPage() {
 
   if (accessLoading) {
     return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-40" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
+      <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ height: 28, width: 160, background: "var(--nk-bg-2)", borderRadius: 6 }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+          {[1, 2, 3, 4].map((i) => <div key={i} style={{ height: 90, background: "var(--nk-bg-2)", borderRadius: 8 }} />)}
         </div>
       </div>
     );
@@ -77,147 +39,138 @@ export default function AnalyticsPage() {
 
   if (!access?.hasAccess) {
     return (
-      <div className="p-6">
-        <PageHeader title="Analytics" />
-        <Card>
-          <CardContent className="py-12 flex flex-col items-center text-center gap-4">
-            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-              <Lock className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="font-semibold">PRO Feature</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Detailed analytics are available on the PRO plan. Upgrade to unlock insights about your store.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      <div style={{ padding: 22 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em", margin: "0 0 16px" }}>Analytics</h1>
+        <div className="nk-card" style={{ padding: "48px 24px", textAlign: "center" }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--nk-bg-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+            <Icon name="lock" size={20} color="var(--nk-muted)" />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>PRO Feature</div>
+          <div style={{ fontSize: 13, color: "var(--nk-muted)", maxWidth: 360, margin: "0 auto 18px" }}>
+            Detailed analytics are available on the PRO plan. Upgrade to unlock insights about your store.
+          </div>
+          <a href="/subscription" className="nk-btn nk-btn-primary" style={{ display: "inline-flex" }}>
+            Upgrade to PRO <Icon name="arrowRight" size={13} />
+          </a>
+        </div>
       </div>
     );
   }
 
-  const summary = data?.summary;
+  const summary   = data?.summary;
   const snapshots = data?.snapshots ?? [];
+  const lowStock  = data?.lowStockProducts ?? [];
+  const top       = data?.topProducts ?? [];
+  const trend     = data?.trend ?? snapshots.map((s) => s.revenue);
 
-  const revenueData = snapshots.map((s) => ({
-    date: new Date(s.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    revenue: s.revenue,
-    orders: s.orders,
-  }));
+  const labels = snapshots.map((s) =>
+    new Date(s.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
+  );
+
+  const kpis = [
+    { label: "Revenue · 30d",    value: fmtRs(summary?.totalRevenue ?? 0) },
+    { label: "Orders · 30d",     value: String(summary?.totalOrders ?? 0) },
+    { label: "Avg order value",  value: fmtRs(summary?.averageOrderValue ?? 0) },
+    { label: "Product views",    value: String(summary?.totalProductViews ?? 0) },
+  ];
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader title="Analytics" description="Store performance for the last 30 days." />
+    <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 18 }}>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          {
-            title: "Total Revenue",
-            value: isLoading ? null : formatNPR(summary?.totalRevenue ?? 0),
-            icon: TrendingUp,
-          },
-          {
-            title: "Total Orders",
-            value: isLoading ? null : String(summary?.totalOrders ?? 0),
-            icon: ShoppingBag,
-          },
-          {
-            title: "Avg Order Value",
-            value: isLoading ? null : formatNPR(summary?.averageOrderValue ?? 0),
-            icon: BarChart3,
-          },
-          {
-            title: "Product Views",
-            value: isLoading ? null : String(summary?.totalProductViews ?? 0),
-            icon: Package,
-          },
-        ].map(({ title, value, icon: Icon }) => (
-          <Card key={title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-              <Icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {value === null ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <p className="text-2xl font-bold">{value}</p>
-              )}
-            </CardContent>
-          </Card>
+      <div>
+        <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em", margin: 0 }}>Analytics</h1>
+        <div style={{ fontSize: 12.5, color: "var(--nk-muted)", marginTop: 3 }}>Store performance · last 30 days</div>
+      </div>
+
+      {/* KPI row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+        {kpis.map((k) => (
+          <div key={k.label} className="nk-card" style={{ padding: 18 }}>
+            <div className="nk-eyebrow" style={{ marginBottom: 10 }}>{k.label}</div>
+            <div className="nk-tnum" style={{ fontSize: 22, fontWeight: 600 }}>{isLoading ? "—" : k.value}</div>
+          </div>
         ))}
       </div>
 
-      {/* Charts */}
-      {revenueData.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Revenue (NPR)</CardTitle></CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v) => formatNPR(Number(v))} />
-                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle className="text-base">Orders per Day</CardTitle></CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="orders" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+      {/* Revenue chart */}
+      {trend.length > 1 ? (
+        <div className="nk-card" style={{ padding: 18 }}>
+          <div className="nk-card-hd" style={{ marginBottom: 14 }}>
+            <h3>Revenue trend</h3>
+          </div>
+          <AreaChart
+            data={trend}
+            height={200}
+            labels={labels}
+            yFormat={(v) => v === 0 ? "" : `${Math.round(v / 1000)}k`}
+          />
         </div>
-      ) : (
-        !isLoading && (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              Not enough data to display charts yet. Orders will populate graphs over time.
-            </CardContent>
-          </Card>
-        )
+      ) : !isLoading && (
+        <div className="nk-card" style={{ padding: "32px 24px", textAlign: "center", fontSize: 13, color: "var(--nk-muted)" }}>
+          Not enough data to display charts yet. Orders will populate graphs over time.
+        </div>
       )}
 
-      {/* Low stock alert */}
-      {(data?.lowStockProducts?.length ?? 0) > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Low Stock Products</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
+      {/* Bottom row: top products + low stock */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+
+        {/* Top products */}
+        <div className="nk-card">
+          <div className="nk-card-hd"><h3>Top products · 30d</h3></div>
+          {top.length === 0 ? (
+            <div style={{ padding: "20px 16px", fontSize: 13, color: "var(--nk-muted)" }}>No sales data yet.</div>
+          ) : (
+            <table className="nk-table">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-medium text-muted-foreground">Product</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Stock</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Threshold</th>
+                <tr>
+                  <th>Product</th>
+                  <th className="nk-num" style={{ width: 70 }}>Sold</th>
+                  <th className="nk-num" style={{ width: 110 }}>Price</th>
                 </tr>
               </thead>
               <tbody>
-                {data!.lowStockProducts.map((p) => (
-                  <tr key={p.id} className="border-b last:border-0">
-                    <td className="p-3 font-medium">{p.name}</td>
-                    <td className="p-3 text-right text-red-600 font-medium">{p.stock}</td>
-                    <td className="p-3 text-right text-muted-foreground">{p.lowStockThreshold}</td>
+                {top.slice(0, 8).map((p) => (
+                  <tr key={p.id}>
+                    <td style={{ fontSize: 12.5, fontWeight: 500, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</td>
+                    <td className="nk-num nk-tnum" style={{ fontSize: 12 }}>{p.sold30 ?? "—"}</td>
+                    <td className="nk-num nk-tnum" style={{ fontSize: 12 }}>{fmtRs(p.price)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </div>
+
+        {/* Low stock */}
+        <div className="nk-card">
+          <div className="nk-card-hd">
+            <h3>Low stock alerts</h3>
+            {lowStock.length > 0 && <Badge tone="warn">{lowStock.length}</Badge>}
+          </div>
+          {lowStock.length === 0 ? (
+            <div style={{ padding: "20px 16px", fontSize: 13, color: "var(--nk-muted)" }}>All products well-stocked.</div>
+          ) : (
+            <table className="nk-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th className="nk-num" style={{ width: 70 }}>Stock</th>
+                  <th className="nk-num" style={{ width: 90 }}>Threshold</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lowStock.map((p) => (
+                  <tr key={p.id}>
+                    <td style={{ fontSize: 12.5, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</td>
+                    <td className="nk-num nk-tnum" style={{ fontSize: 12, color: p.stock === 0 ? "var(--nk-danger)" : "var(--nk-warning)", fontWeight: 600 }}>{p.stock}</td>
+                    <td className="nk-num nk-tnum" style={{ fontSize: 12, color: "var(--nk-muted)" }}>{p.lowStockThreshold}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

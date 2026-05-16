@@ -1,15 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, CheckCircle2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { get } from "@/lib/api";
-import { formatNPR, formatDate } from "@/lib/utils";
-import { Subscription, Plan } from "../../../types";
-import { StatusBadge } from "../../../components/shared/status-badge";
-import { EmptyState } from "../../../components/shared/empty-state";
-import { PageHeader } from "../../../components/shared/page-header";
+import { fmtRs, Icon, StatusBadge, Badge } from "@/components/nk/primitives";
+import { Subscription, Plan } from "@/types";
 
 export default function SubscriptionPage() {
   const { data: subscription, isLoading } = useQuery<Subscription | null>({
@@ -24,135 +18,147 @@ export default function SubscriptionPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16, maxWidth: 680 }}>
+        {[1, 2, 3].map((i) => <div key={i} style={{ height: i === 1 ? 160 : 100, background: "var(--nk-bg-2)", borderRadius: 8 }} />)}
       </div>
     );
   }
 
-  return (
-    <div className="p-6 max-w-3xl space-y-6">
-      <PageHeader title="Subscription" description="Your current plan and billing history." />
+  const sub = subscription;
 
-      {/* Current plan */}
-      {subscription ? (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Current Plan</CardTitle>
-            <StatusBadge status={subscription.status} />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+  return (
+    <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 18, maxWidth: 680 }}>
+
+      <div>
+        <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em", margin: 0 }}>Subscription</h1>
+        <div style={{ fontSize: 12.5, color: "var(--nk-muted)", marginTop: 3 }}>Your current plan and billing history.</div>
+      </div>
+
+      {/* Current plan card */}
+      {sub ? (
+        <div className="nk-card">
+          <div className="nk-card-hd">
+            <h3>Current Plan</h3>
+            <StatusBadge status={sub.status} />
+          </div>
+          <div style={{ padding: "14px 16px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <p className="text-xl font-bold">{subscription.plan.name}</p>
-                <p className="text-sm text-muted-foreground capitalize">{subscription.plan.tier.toLowerCase()} tier</p>
+                <div style={{ fontSize: 18, fontWeight: 600 }}>{sub.plan.name}</div>
+                <div style={{ fontSize: 12.5, color: "var(--nk-muted)", marginTop: 2, textTransform: "capitalize" }}>{sub.plan.tier.toLowerCase()} tier</div>
               </div>
-              <p className="text-2xl font-bold">{formatNPR(Number(subscription.plan.price))}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+              <div style={{ textAlign: "right" }}>
+                <span className="nk-tnum" style={{ fontSize: 22, fontWeight: 600 }}>{fmtRs(Number(sub.plan.price))}</span>
+                <span style={{ fontSize: 12.5, color: "var(--nk-muted)" }}>/mo</span>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm pt-2 border-t">
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, paddingTop: 12, borderTop: "1px solid var(--nk-border)", fontSize: 13 }}>
               <div>
-                <p className="text-muted-foreground">Period Start</p>
-                <p className="font-medium">{formatDate(subscription.currentPeriodStart)}</p>
+                <div style={{ color: "var(--nk-muted)", marginBottom: 3 }}>Period start</div>
+                <div style={{ fontWeight: 500 }}>{fmt(sub.currentPeriodStart)}</div>
               </div>
               <div>
-                <p className="text-muted-foreground">Period End</p>
-                <p className="font-medium">{formatDate(subscription.currentPeriodEnd)}</p>
+                <div style={{ color: "var(--nk-muted)", marginBottom: 3 }}>Period end</div>
+                <div style={{ fontWeight: 500 }}>{fmt(sub.currentPeriodEnd)}</div>
               </div>
             </div>
-            {subscription.plan.features.length > 0 && (
-              <div className="pt-2 border-t">
-                <p className="text-sm font-medium mb-2">Included features</p>
-                <ul className="grid grid-cols-2 gap-1">
-                  {subscription.plan.features.map((f, i) => (
-                    <li key={i} className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+
+            {sub.plan.features.length > 0 && (
+              <div style={{ paddingTop: 12, borderTop: "1px solid var(--nk-border)" }}>
+                <div style={{ fontSize: 12.5, fontWeight: 500, marginBottom: 10 }}>Included features</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px" }}>
+                  {sub.plan.features.map((f, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: "var(--nk-muted)" }}>
+                      <Icon name="check" size={12} color="var(--nk-success)" />
                       {f}
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <EmptyState
-              icon={CreditCard}
-              title="No active subscription"
-              description="Contact support to activate a subscription plan."
-            />
-          </CardContent>
-        </Card>
+        <div className="nk-card" style={{ padding: "48px 24px", textAlign: "center" }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--nk-bg-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+            <Icon name="card" size={18} color="var(--nk-muted)" />
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>No active subscription</div>
+          <div style={{ fontSize: 13, color: "var(--nk-muted)" }}>Contact support to activate a subscription plan.</div>
+        </div>
       )}
 
       {/* Available plans */}
       {plans && plans.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Available Plans</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {plans.map((plan) => (
-              <Card key={plan.id} className={subscription?.plan.id === plan.id ? "border-primary" : undefined}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{plan.name}</CardTitle>
-                    {subscription?.plan.id === plan.id && (
-                      <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Current</span>
-                    )}
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--nk-muted)", marginBottom: 12 }}>Available Plans</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            {plans.map((plan) => {
+              const isCurrent = sub?.plan.id === plan.id;
+              return (
+                <div
+                  key={plan.id}
+                  className="nk-card"
+                  style={{ border: isCurrent ? "1.5px solid var(--nk-accent)" : undefined }}
+                >
+                  <div style={{ padding: "14px 16px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600 }}>{plan.name}</div>
+                      {isCurrent && <Badge tone="accent">Current</Badge>}
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                      <span className="nk-tnum" style={{ fontSize: 20, fontWeight: 600 }}>{fmtRs(Number(plan.price))}</span>
+                      <span style={{ fontSize: 12.5, color: "var(--nk-muted)" }}>/mo</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                      <div style={{ fontSize: 12.5, color: "var(--nk-muted)" }}>
+                        {plan.maxProducts === null ? "Unlimited products" : `Up to ${plan.maxProducts} products`}
+                      </div>
+                      {plan.features.map((f, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: "var(--nk-muted)" }}>
+                          <Icon name="check" size={12} color="var(--nk-success)" />
+                          {f}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <p className="text-xl font-bold">{formatNPR(Number(plan.price))}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-1">
-                    <li className="text-sm text-muted-foreground">
-                      {plan.maxProducts === null ? "Unlimited products" : `Up to ${plan.maxProducts} products`}
-                    </li>
-                    {plan.features.map((f, i) => (
-                      <li key={i} className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              );
+            })}
           </div>
-          <p className="text-xs text-muted-foreground mt-3">To change or cancel your plan, contact support.</p>
+          <div style={{ fontSize: 11.5, color: "var(--nk-muted)", marginTop: 10 }}>To change or cancel your plan, contact support.</div>
         </div>
       )}
 
       {/* Payment history */}
-      {subscription?.payments && subscription.payments.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Payment History</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 font-medium text-muted-foreground">Date</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Method</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Amount</th>
-                  <th className="text-right p-3 font-medium text-muted-foreground">Status</th>
+      {sub?.payments && sub.payments.length > 0 && (
+        <div className="nk-card" style={{ overflow: "hidden", padding: 0 }}>
+          <div className="nk-card-hd"><h3>Payment History</h3></div>
+          <table className="nk-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Method</th>
+                <th className="nk-num">Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sub.payments.map((payment) => (
+                <tr key={payment.id}>
+                  <td style={{ fontSize: 12.5 }}>{fmt(payment.paidAt)}</td>
+                  <td style={{ fontSize: 12.5, textTransform: "capitalize" }}>{payment.method.replace(/_/g, " ").toLowerCase()}</td>
+                  <td className="nk-num nk-tnum" style={{ fontWeight: 500 }}>{fmtRs(Number(payment.amount))}</td>
+                  <td><StatusBadge status={payment.status} /></td>
                 </tr>
-              </thead>
-              <tbody>
-                {subscription.payments.map((payment) => (
-                  <tr key={payment.id} className="border-b last:border-0">
-                    <td className="p-3">{formatDate(payment.paidAt)}</td>
-                    <td className="p-3 capitalize">{payment.method.replace(/_/g, " ").toLowerCase()}</td>
-                    <td className="p-3 text-right font-medium">{formatNPR(Number(payment.amount))}</td>
-                    <td className="p-3 text-right">
-                      <StatusBadge status={payment.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

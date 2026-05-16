@@ -5,23 +5,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Tag, Trash2, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { get, post, del } from "@/lib/api";
-import { formatNPR, formatDate } from "@/lib/utils";
-import { PaginatedResponse } from "../../../types";
-import { StatusBadge } from "../../../components/shared/status-badge";
-import { EmptyState } from "../../../components/shared/empty-state";
-import { PageHeader } from "../../../components/shared/page-header";
+import { fmtRs, Icon, Badge, StatusBadge } from "@/components/nk/primitives";
+import { PaginatedResponse } from "@/types";
 
 interface Discount {
   id: string;
@@ -36,10 +24,7 @@ interface Discount {
   createdAt: string;
 }
 
-interface AccessCheck {
-  hasAccess: boolean;
-  reason?: string;
-}
+interface AccessCheck { hasAccess: boolean; }
 
 const schema = z.object({
   code: z.string().min(3).max(20).regex(/^[A-Z0-9_-]+$/, "Uppercase letters, numbers, hyphens, underscores only"),
@@ -53,8 +38,8 @@ type FormValues = z.infer<typeof schema>;
 
 export default function DiscountsPage() {
   const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [page, setPage]         = useState(1);
+  const [sheetOpen, setSheet]   = useState(false);
 
   const { data: access, isLoading: accessLoading } = useQuery<AccessCheck>({
     queryKey: ["access", "discounts"],
@@ -67,16 +52,11 @@ export default function DiscountsPage() {
     enabled: !!access?.hasAccess,
   });
 
-  const discounts = data?.items ?? [];
+  const discounts  = data?.items ?? [];
   const totalPages = data?.totalPages ?? 1;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<FormValues, unknown, FormValues>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues, unknown, FormValues>({
     resolver: zodResolver(schema) as any,
     defaultValues: { type: "PERCENTAGE" },
   });
@@ -86,7 +66,7 @@ export default function DiscountsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["discounts"] });
       toast.success("Discount code created");
-      setSheetOpen(false);
+      setSheet(false);
       reset();
     },
     onError: () => toast.error("Failed to create discount"),
@@ -94,186 +74,187 @@ export default function DiscountsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => del(`/seller/discounts/${id}`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["discounts"] });
-      toast.success("Discount deactivated");
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["discounts"] }),
     onError: () => toast.error("Failed to deactivate discount"),
   });
 
   if (accessLoading) {
     return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-32 w-full" />
+      <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ height: 28, width: 180, background: "var(--nk-bg-2)", borderRadius: 6 }} />
+        <div style={{ height: 180, background: "var(--nk-bg-2)", borderRadius: 8 }} />
       </div>
     );
   }
 
   if (!access?.hasAccess) {
     return (
-      <div className="p-6">
-        <PageHeader title="Discount Codes" />
-        <Card>
-          <CardContent className="py-12 flex flex-col items-center text-center gap-4">
-            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-              <Lock className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="font-semibold">PRO Feature</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Discount codes are available on the PRO plan. Upgrade to create and manage discount codes.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      <div style={{ padding: 22 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em", margin: "0 0 16px" }}>Discount Codes</h1>
+        <div className="nk-card" style={{ padding: "48px 24px", textAlign: "center" }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--nk-bg-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+            <Icon name="lock" size={20} color="var(--nk-muted)" />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>PRO Feature</div>
+          <div style={{ fontSize: 13, color: "var(--nk-muted)", maxWidth: 360, margin: "0 auto 18px" }}>
+            Discount codes are available on the PRO plan. Upgrade to create and manage discount codes for your customers.
+          </div>
+          <a href="/subscription" className="nk-btn nk-btn-primary" style={{ display: "inline-flex" }}>
+            Upgrade to PRO <Icon name="arrowRight" size={13} />
+          </a>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <PageHeader
-        title="Discount Codes"
-        action={
-          <Button size="sm" onClick={() => { reset(); setSheetOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Create Code
-          </Button>
-        }
-      />
+    <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
 
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Value</TableHead>
-              <TableHead>Min Order</TableHead>
-              <TableHead className="text-center">Used / Max</TableHead>
-              <TableHead>Expires</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-20">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 8 }).map((__, j) => (
-                      <TableCell key={j}><Skeleton className="h-6 w-full" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              : discounts.length === 0
-              ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="p-0">
-                    <EmptyState
-                      icon={Tag}
-                      title="No discount codes"
-                      description="Create your first discount code to offer deals to customers."
-                      action={{ label: "Create Code", onClick: () => { reset(); setSheetOpen(true); } }}
-                    />
-                  </TableCell>
-                </TableRow>
-              )
-              : discounts.map((d) => (
-                  <TableRow key={d.id}>
-                    <TableCell className="font-mono font-semibold">{d.code}</TableCell>
-                    <TableCell className="text-sm capitalize">{d.type.toLowerCase()}</TableCell>
-                    <TableCell className="text-sm font-medium">
-                      {d.type === "PERCENTAGE" ? `${d.value}%` : formatNPR(Number(d.value))}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {d.minOrderAmount ? formatNPR(Number(d.minOrderAmount)) : "—"}
-                    </TableCell>
-                    <TableCell className="text-center text-sm">
-                      {d.usedCount} / {d.maxUses ?? "∞"}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {d.expiresAt ? formatDate(d.expiresAt) : "Never"}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={d.isActive ? "ACTIVE" : "ARCHIVED"} />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive"
-                        disabled={deleteMutation.isPending || !d.isActive}
-                        onClick={() => deleteMutation.mutate(d.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-          </TableBody>
-        </Table>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em", margin: 0 }}>Discount Codes</h1>
+          <div style={{ fontSize: 12.5, color: "var(--nk-muted)", marginTop: 3 }}>{discounts.length} codes</div>
+        </div>
+        <button className="nk-btn nk-btn-primary" style={{ gap: 6 }} onClick={() => { reset(); setSheet(true); }}>
+          <Icon name="plus" size={14} />
+          Create code
+        </button>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">
-          <span>Page {page} of {totalPages}</span>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
+      {/* Table */}
+      <div className="nk-card" style={{ overflow: "hidden", padding: 0 }}>
+        {isLoading ? (
+          <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 10 }}>
+            {[1, 2, 3].map((i) => <div key={i} style={{ height: 44, background: "var(--nk-bg-2)", borderRadius: 6 }} />)}
           </div>
-        </div>
-      )}
+        ) : discounts.length === 0 ? (
+          <div style={{ padding: "48px 24px", textAlign: "center" }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--nk-bg-2)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+              <Icon name="tag" size={18} color="var(--nk-muted)" />
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>No discount codes</div>
+            <div style={{ fontSize: 13, color: "var(--nk-muted)", marginBottom: 16 }}>Create your first discount code to offer deals to customers.</div>
+            <button className="nk-btn nk-btn-primary nk-btn-sm" onClick={() => { reset(); setSheet(true); }}>
+              <Icon name="plus" size={13} /> Create code
+            </button>
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table className="nk-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 120 }}>Code</th>
+                  <th style={{ width: 100 }}>Type</th>
+                  <th className="nk-num" style={{ width: 100 }}>Value</th>
+                  <th className="nk-num" style={{ width: 120 }}>Min order</th>
+                  <th style={{ width: 90, textAlign: "center" }}>Used / Max</th>
+                  <th style={{ width: 110 }}>Expires</th>
+                  <th style={{ width: 90 }}>Status</th>
+                  <th style={{ width: 50 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {discounts.map((d) => {
+                  const expires = d.expiresAt
+                    ? new Date(d.expiresAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })
+                    : "Never";
+                  return (
+                    <tr key={d.id}>
+                      <td className="nk-mono" style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: "0.04em" }}>{d.code}</td>
+                      <td style={{ fontSize: 12, color: "var(--nk-muted)", textTransform: "capitalize" }}>{d.type.toLowerCase()}</td>
+                      <td className="nk-num nk-tnum" style={{ fontWeight: 500 }}>
+                        {d.type === "PERCENTAGE" ? `${d.value}%` : fmtRs(Number(d.value))}
+                      </td>
+                      <td className="nk-num nk-tnum" style={{ fontSize: 12, color: "var(--nk-muted)" }}>
+                        {d.minOrderAmount ? fmtRs(Number(d.minOrderAmount)) : "—"}
+                      </td>
+                      <td className="nk-tnum" style={{ textAlign: "center", fontSize: 12 }}>
+                        {d.usedCount} / {d.maxUses ?? "∞"}
+                      </td>
+                      <td style={{ fontSize: 12, color: "var(--nk-muted)" }}>{expires}</td>
+                      <td><StatusBadge status={d.isActive ? "ACTIVE" : "ARCHIVED"} /></td>
+                      <td>
+                        <button
+                          className="nk-btn nk-btn-ghost nk-btn-icon"
+                          style={{ height: 28, width: 28, color: "var(--nk-danger)" }}
+                          disabled={deleteMutation.isPending || !d.isActive}
+                          onClick={() => deleteMutation.mutate(d.id)}
+                          title="Deactivate"
+                        >
+                          <Icon name="x" size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderTop: "1px solid var(--nk-border)", fontSize: 12.5, color: "var(--nk-muted)" }}>
+            <span>Page {page} of {totalPages}</span>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button className="nk-btn nk-btn-secondary nk-btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
+              <button className="nk-btn nk-btn-secondary nk-btn-sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Create sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>Create Discount Code</SheetTitle>
-          </SheetHeader>
-          <form onSubmit={handleSubmit((v) => createMutation.mutate(v))} className="space-y-4 mt-4">
-            <div className="space-y-1">
-              <Label>Code *</Label>
-              <Input {...register("code")} placeholder="SAVE20" className="uppercase" />
-              {errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
+      <Sheet open={sheetOpen} onOpenChange={setSheet}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto" style={{ padding: 0 }}>
+          <div style={{ padding: 22, borderBottom: "1px solid var(--nk-border)" }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>Create Discount Code</h2>
+          </div>
+          <form onSubmit={handleSubmit((v) => createMutation.mutate(v))} style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
+
+            <div>
+              <label className="nk-label">Code *</label>
+              <input className="nk-input nk-mono" {...register("code")} placeholder="SAVE20" style={{ textTransform: "uppercase" }} />
+              {errors.code && <p style={{ fontSize: 11.5, color: "var(--nk-danger)", marginTop: 4 }}>{errors.code.message}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Type *</Label>
-                <select
-                  className="flex h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  {...register("type")}
-                >
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label className="nk-label">Type *</label>
+                <select className="nk-input" {...register("type")}>
                   <option value="PERCENTAGE">Percentage (%)</option>
                   <option value="FIXED">Fixed (NPR)</option>
                 </select>
               </div>
-              <div className="space-y-1">
-                <Label>Value *</Label>
-                <Input type="number" step="0.01" {...register("value")} placeholder="10" />
-                {errors.value && <p className="text-xs text-destructive">{errors.value.message}</p>}
+              <div>
+                <label className="nk-label">Value *</label>
+                <input className="nk-input nk-tnum" type="number" step="0.01" {...register("value")} placeholder="10" />
+                {errors.value && <p style={{ fontSize: 11.5, color: "var(--nk-danger)", marginTop: 4 }}>{errors.value.message}</p>}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Min Order (NPR)</Label>
-                <Input type="number" {...register("minOrderAmount")} placeholder="500" />
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label className="nk-label">Min order (NPR)</label>
+                <input className="nk-input nk-tnum" type="number" {...register("minOrderAmount")} placeholder="500" />
               </div>
-              <div className="space-y-1">
-                <Label>Max Uses</Label>
-                <Input type="number" {...register("maxUses")} placeholder="100" />
+              <div>
+                <label className="nk-label">Max uses</label>
+                <input className="nk-input nk-tnum" type="number" {...register("maxUses")} placeholder="100" />
               </div>
             </div>
-            <div className="space-y-1">
-              <Label>Expires At</Label>
-              <Input type="date" {...register("expiresAt")} />
+
+            <div>
+              <label className="nk-label">Expires at</label>
+              <input className="nk-input" type="date" {...register("expiresAt")} />
             </div>
-            <SheetFooter>
-              <Button type="button" variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
-                {(isSubmitting || createMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create
-              </Button>
-            </SheetFooter>
+
+            <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+              <button type="button" className="nk-btn nk-btn-secondary" style={{ flex: 1 }} onClick={() => setSheet(false)}>Cancel</button>
+              <button type="submit" className="nk-btn nk-btn-primary" style={{ flex: 1 }} disabled={isSubmitting || createMutation.isPending}>
+                {(isSubmitting || createMutation.isPending) ? "Creating…" : "Create code"}
+              </button>
+            </div>
           </form>
         </SheetContent>
       </Sheet>
