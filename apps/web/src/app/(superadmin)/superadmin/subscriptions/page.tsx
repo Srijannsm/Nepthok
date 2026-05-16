@@ -104,7 +104,7 @@ export default function SubscriptionsPage() {
       setPaymentTarget(null);
       setPaymentForm({ amount: "", method: "ESEWA", transactionId: "" });
     },
-    onError: () => toast.error("Failed to record payment"),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to record payment"),
   });
 
   const assignPlanMutation = useMutation({
@@ -115,7 +115,7 @@ export default function SubscriptionsPage() {
       setAssignOpen(false);
       setAssignForm({ tenantId: "", planId: "", paymentMethod: "ESEWA" });
     },
-    onError: () => toast.error("Failed to assign plan"),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to assign plan"),
   });
 
   const subs = data?.items ?? [];

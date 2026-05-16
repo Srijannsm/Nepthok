@@ -60,7 +60,7 @@ export default function CategoriesPage() {
       toast.success("Category created");
       closeSheet();
     },
-    onError: () => toast.error("Failed to create category"),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to create category"),
   });
 
   const updateMutation = useMutation({
@@ -70,7 +70,7 @@ export default function CategoriesPage() {
       toast.success("Category updated");
       closeSheet();
     },
-    onError: () => toast.error("Failed to update category"),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update category"),
   });
 
   const deactivateMutation = useMutation({
@@ -80,7 +80,7 @@ export default function CategoriesPage() {
       toast.success("Category deactivated");
       setDeactivateTarget(null);
     },
-    onError: () => toast.error("Failed to deactivate category"),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to deactivate category"),
   });
 
   function openCreate() {

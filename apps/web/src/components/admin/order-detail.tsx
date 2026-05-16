@@ -26,7 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
   SHIPPED: "Mark Shipped",
   DELIVERED: "Mark Delivered",
   REFUNDED: "Refund",
-  CANCELLED: "Cancel",
+  CANCELLED: "Cancel order",
 };
 
 interface Props {
@@ -49,7 +49,7 @@ export function OrderDetail({ order, onClose }: Props) {
       toast.success("Order status updated");
       onClose();
     },
-    onError: () => toast.error("Failed to update order status"),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update order status"),
   });
 
   return (
@@ -142,7 +142,7 @@ export function OrderDetail({ order, onClose }: Props) {
               onChange={(e) => setNextStatus(e.target.value)}
             >
               <option value="">Select next status…</option>
-              {transitions.filter((s) => s !== "CANCELLED").map((s) => (
+              {transitions.map((s) => (
                 <option key={s} value={s}>{STATUS_LABELS[s] ?? s}</option>
               ))}
             </select>

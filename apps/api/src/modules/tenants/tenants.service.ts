@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { TenantStatus, UserRole } from "@nepthok/database";
+import { Prisma, TenantStatus, UserRole } from "@nepthok/database";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateTenantDto } from "./dto/create-tenant.dto";
@@ -64,16 +64,27 @@ export class TenantsService {
     });
   }
 
-  async findAll(page: number, limit: number) {
+  async findAll(page: number, limit: number, search?: string, status?: string) {
     const skip = (page - 1) * limit;
+    const where: Prisma.TenantWhereInput = {
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { slug: { contains: search, mode: "insensitive" } },
+          { owner: { email: { contains: search, mode: "insensitive" } } },
+        ],
+      }),
+      ...(status && { status: status as TenantStatus }),
+    };
     const [items, total] = await Promise.all([
       this.prisma.tenant.findMany({
         skip,
         take: limit,
+        where,
         include: TENANT_WITH_OWNER,
         orderBy: { createdAt: "desc" },
       }),
-      this.prisma.tenant.count(),
+      this.prisma.tenant.count({ where }),
     ]);
 
     return {

@@ -49,7 +49,7 @@ export default function PlansPage() {
       toast.success("Plan updated");
       setEditingPlan(null);
     },
-    onError: () => toast.error("Failed to update plan"),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update plan"),
   });
 
   function openEdit(plan: PlanWithStats) {
