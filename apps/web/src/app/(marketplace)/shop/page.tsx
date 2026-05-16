@@ -1,16 +1,19 @@
 "use client";
 
-import { useRef, type FormEvent } from "react";
+import { useRef, useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Smartphone, Zap, Shield, Headphones, Battery } from "lucide-react";
+import { ProductCard } from "@/components/marketplace/ProductCard";
+import { publicApi } from "@/lib/api";
 
 const POPULAR_SEARCHES = [
   "iPhone 15 case",
-  "fast charger",
-  "Samsung S24",
-  "60W cable",
-  "airpods cover",
-  "power bank 10000",
+  "65W fast charger",
+  "USB-C cable",
+  "wireless earbuds",
+  "screen protector",
+  "power bank 20000",
 ];
 
 const PHONE_BRANDS_MOBILE = [
@@ -31,8 +34,58 @@ const PHONE_MODELS_DESKTOP = [
   { label: "OnePlus 12", query: "OnePlus 12" },
 ];
 
-// Skeleton card for trending now
-function SkeletonCard() {
+// Map category slugs → lucide icon
+const SLUG_ICON_MAP: Record<string, React.ElementType> = {
+  cases: Smartphone,
+  chargers: Zap,
+  "screen-guards": Shield,
+  earphones: Headphones,
+  "power-banks": Battery,
+};
+
+function getCategoryIcon(slug: string): React.ElementType {
+  if (SLUG_ICON_MAP[slug]) return SLUG_ICON_MAP[slug];
+  for (const [key, Icon] of Object.entries(SLUG_ICON_MAP)) {
+    if (slug.includes(key.replace("-", ""))) return Icon;
+  }
+  return Smartphone;
+}
+
+const STATIC_CATEGORIES = [
+  { slug: "cases", name: "Cases", Icon: Smartphone },
+  { slug: "chargers", name: "Chargers", Icon: Zap },
+  { slug: "screen-guards", name: "Screen Guards", Icon: Shield },
+  { slug: "earphones", name: "Earphones", Icon: Headphones },
+  { slug: "power-banks", name: "Power Banks", Icon: Battery },
+];
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface MarketplaceProduct {
+  id: string;
+  name: string;
+  sellerName: string;
+  sellerVerified?: boolean;
+  price: number;
+  comparePrice?: number;
+  originalPrice?: number;
+  discountPct?: number;
+  soldCount?: number;
+  rating?: number;
+  ratingCount?: number;
+  imageUrl?: string;
+  images?: string[];
+  inStock?: boolean;
+  stock?: number;
+  lowStockThreshold?: number;
+  wholesaleTiers?: { minQty: number; price: number }[];
+}
+
+function ProductSkeleton() {
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
       <div className="bg-gray-100 aspect-square w-full" />
@@ -45,9 +98,53 @@ function SkeletonCard() {
   );
 }
 
+function CategorySkeleton() {
+  return (
+    <div className="flex flex-col items-center gap-2 bg-white rounded-xl border border-gray-100 p-5 animate-pulse">
+      <div className="w-6 h-6 bg-gray-100 rounded-full" />
+      <div className="h-3 bg-gray-100 rounded w-16" />
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractItems(d: any): any[] {
+  if (Array.isArray(d)) return d;
+  if (Array.isArray(d?.items)) return d.items;
+  if (Array.isArray(d?.data)) return d.data;
+  return [];
+}
+
 export default function ShopHomePage() {
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [trendingProducts, setTrendingProducts] = useState<MarketplaceProduct[]>([]);
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    publicApi
+      .get<{ success: boolean; data: unknown }>("/categories")
+      .then((res) => {
+        const arr = extractItems(res.data.data) as Category[];
+        setCategories(arr.slice(0, 5));
+      })
+      .catch(() => setCategories([]))
+      .finally(() => setLoadingCats(false));
+
+    publicApi
+      .get<{ success: boolean; data: unknown }>("/products", {
+        params: { pageSize: 4, page: 1, sort: "newest" },
+      })
+      .then((res) => {
+        const arr = extractItems(res.data.data) as MarketplaceProduct[];
+        setTrendingProducts(arr.slice(0, 4));
+      })
+      .catch(() => setTrendingProducts([]))
+      .finally(() => setLoadingProducts(false));
+  }, []);
 
   function handleSearch(e: FormEvent) {
     e.preventDefault();
@@ -57,22 +154,19 @@ export default function ShopHomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ── Hero / Search Section ──────────────────────────────── */}
+      {/* ── Hero / Search ── */}
       <section className="bg-white border-b border-gray-100">
         <div className="max-w-2xl mx-auto px-4 py-10 lg:py-16 flex flex-col items-center text-center gap-5">
-          {/* Headline */}
           <h1 className="text-2xl font-bold text-gray-900 leading-snug lg:text-4xl lg:leading-tight">
-            What does your phone
+            Nepal&apos;s #1 mobile
             <br />
-            need today?
+            accessories marketplace
           </h1>
 
-          {/* Subtitle — desktop only */}
           <p className="hidden lg:block text-base text-gray-500 -mt-2">
-            Search 1,200+ accessories from verified Nepali sellers.
+            Cases, chargers, cables &amp; more — from verified sellers across Nepal.
           </p>
 
-          {/* Search input */}
           <form onSubmit={handleSearch} className="w-full max-w-lg">
             <div className="relative flex items-center">
               <span className="absolute left-4 text-blue-500 text-lg pointer-events-none select-none">
@@ -81,7 +175,7 @@ export default function ShopHomePage() {
               <input
                 ref={searchRef}
                 type="search"
-                placeholder="iPhone 15 case…"
+                placeholder="Search iPhone cases, chargers, cables…"
                 className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-blue-600 text-gray-900 text-sm lg:text-base placeholder-gray-400 outline-none focus:ring-4 focus:ring-blue-100 transition-all duration-150 bg-white shadow-sm"
                 autoComplete="off"
               />
@@ -97,7 +191,7 @@ export default function ShopHomePage() {
           {/* Popular searches */}
           <div className="flex flex-col items-center gap-2 w-full max-w-lg">
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-              popular searches
+              popular
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {POPULAR_SEARCHES.map((term) => (
@@ -114,13 +208,61 @@ export default function ShopHomePage() {
         </div>
       </section>
 
-      {/* ── Shop by Phone ──────────────────────────────────────── */}
+      {/* ── Browse by category ── */}
       <section className="max-w-5xl mx-auto px-4 py-8 lg:py-10">
         <h2 className="text-base font-semibold text-gray-900 mb-4 lg:text-lg">
-          shop your phone
+          browse by category
         </h2>
 
-        {/* Mobile: 2-col grid of brand cards */}
+        {loadingCats ? (
+          <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <CategorySkeleton key={i} />
+            ))}
+          </div>
+        ) : categories.length > 0 ? (
+          <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
+            {categories.map((cat) => {
+              const Icon = getCategoryIcon(cat.slug);
+              return (
+                <Link
+                  key={cat.id}
+                  href={`/shop/categories/${cat.slug}`}
+                  className="flex flex-col items-center gap-2 bg-white rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-sm transition-all duration-150 py-5 px-2 text-center group"
+                >
+                  <Icon className="w-6 h-6 text-blue-600 group-hover:text-blue-700" />
+                  <span className="text-xs font-medium text-gray-700 group-hover:text-blue-700">
+                    {cat.name}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
+            {STATIC_CATEGORIES.map(({ slug, name, Icon }) => (
+              <Link
+                key={slug}
+                href={`/shop/categories/${slug}`}
+                className="flex flex-col items-center gap-2 bg-white rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-sm transition-all duration-150 py-5 px-2 text-center group"
+              >
+                <Icon className="w-6 h-6 text-blue-600 group-hover:text-blue-700" />
+                <span className="text-xs font-medium text-gray-700 group-hover:text-blue-700">
+                  {name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── Shop by phone ── */}
+      <section className="max-w-5xl mx-auto px-4 pb-8 lg:pb-10">
+        <h2 className="text-base font-semibold text-gray-900 mb-4 lg:text-lg">
+          shop by phone
+        </h2>
+
+        {/* Mobile: 2-col brand grid */}
         <div className="grid grid-cols-2 gap-3 lg:hidden">
           {PHONE_BRANDS_MOBILE.map((brand) => (
             <Link
@@ -133,7 +275,7 @@ export default function ShopHomePage() {
           ))}
         </div>
 
-        {/* Desktop: 8-col grid of model cards */}
+        {/* Desktop: 8-col model grid */}
         <div className="hidden lg:grid grid-cols-4 xl:grid-cols-8 gap-3">
           {PHONE_MODELS_DESKTOP.map((model) => (
             <Link
@@ -147,7 +289,7 @@ export default function ShopHomePage() {
         </div>
       </section>
 
-      {/* ── Trending Now ──────────────────────────────────────── */}
+      {/* ── Trending now ── */}
       <section className="max-w-5xl mx-auto px-4 pb-10 lg:pb-12">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900 lg:text-lg">
@@ -161,18 +303,61 @@ export default function ShopHomePage() {
           </Link>
         </div>
 
-        {/* 2-col skeleton grid — MVP placeholder */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-
-        <p className="text-xs text-gray-400 text-center mt-4">
-          Products loading soon — browse by phone above or search to find exactly what you need.
-        </p>
+        {loadingProducts ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <ProductSkeleton key={i} />
+            ))}
+          </div>
+        ) : trendingProducts.length > 0 ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {trendingProducts.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <ProductSkeleton key={i} />
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 text-center mt-4">
+              Browse by phone or search to find exactly what you need.
+            </p>
+          </>
+        )}
       </section>
+
+      {/* ── How it works ── */}
+      <section className="bg-white border-t border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 py-10">
+          <h2 className="text-base font-semibold text-gray-900 mb-6 lg:text-lg text-center">
+            how it works
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { step: "1", title: "Search & browse", desc: "Find accessories for any phone model" },
+              { step: "2", title: "Add to cart", desc: "From verified Nepali sellers" },
+              { step: "3", title: "Checkout", desc: "COD, eSewa, or Khalti" },
+              { step: "4", title: "Door delivery", desc: "Free delivery above Rs. 1,500" },
+            ].map((s) => (
+              <div key={s.step} className="flex flex-col items-center text-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center shrink-0">
+                  {s.step}
+                </div>
+                <p className="text-sm font-semibold text-gray-900">{s.title}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer strip ── */}
+      <footer className="bg-gray-900 text-gray-400 text-xs text-center py-4 px-4">
+        Nepal&apos;s trusted marketplace for mobile accessories. Verified sellers. Fast delivery. COD available.
+      </footer>
     </div>
   );
 }

@@ -16,12 +16,16 @@ interface ProductCardProduct {
   sellerVerified?: boolean;
   price: number;
   originalPrice?: number;
+  comparePrice?: number;
   discountPct?: number;
   soldCount?: number;
   rating?: number;
   ratingCount?: number;
   imageUrl?: string;
+  images?: string[];
   inStock?: boolean;
+  stock?: number;
+  lowStockThreshold?: number;
   wholesaleTiers?: WholesaleTier[];
 }
 
@@ -41,15 +45,33 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
     sellerName,
     sellerVerified,
     price,
-    originalPrice,
-    discountPct,
     soldCount,
     rating,
     ratingCount,
-    imageUrl,
-    inStock = true,
     wholesaleTiers,
   } = product;
+
+  // Resolve display image: prefer images array, fall back to imageUrl
+  const displayImage = product.images?.[0] ?? product.imageUrl;
+
+  // Resolve strike-through price: prefer comparePrice, fall back to originalPrice
+  const strikePrice = product.comparePrice ?? product.originalPrice;
+
+  // Resolve in-stock status: if stock is provided use it, else use inStock flag
+  const isInStock =
+    product.stock !== undefined ? product.stock > 0 : (product.inStock ?? true);
+
+  // Low-stock warning: stock is defined, > 0, and at or below threshold
+  const isLowStock =
+    product.stock !== undefined &&
+    product.stock > 0 &&
+    product.lowStockThreshold !== undefined &&
+    product.stock <= product.lowStockThreshold;
+
+  const discountPct = product.discountPct ??
+    (strikePrice && strikePrice > price
+      ? Math.round(((strikePrice - price) / strikePrice) * 100)
+      : undefined);
 
   const showRating =
     typeof rating === "number" && typeof ratingCount === "number" && ratingCount >= 5;
@@ -60,15 +82,15 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
   return (
     <Link
       href={`/shop/products/${id}`}
-      className={`group block bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-150 ${!inStock ? "opacity-70" : ""} ${isList ? "flex gap-3" : ""}`}
+      className={`group block bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-150 ${!isInStock ? "opacity-70" : ""} ${isList ? "flex gap-3" : ""}`}
     >
       {/* Image */}
       <div
-        className={`relative bg-gray-100 shrink-0 ${isList ? "w-28 h-28" : "aspect-square w-full"} ${!inStock ? "grayscale" : ""}`}
+        className={`relative bg-gray-100 shrink-0 ${isList ? "w-28 h-28" : "aspect-square w-full"} ${!isInStock ? "grayscale" : ""}`}
       >
-        {imageUrl ? (
+        {displayImage ? (
           <Image
-            src={imageUrl}
+            src={displayImage}
             alt={name}
             fill
             className="object-cover"
@@ -81,7 +103,7 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
           </div>
         )}
         {/* Out of stock overlay */}
-        {!inStock && (
+        {!isInStock && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20">
             <span className="bg-white text-gray-600 text-xs font-medium px-2 py-0.5 rounded">
               Out of stock
@@ -89,7 +111,7 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
           </div>
         )}
         {/* Hover add to cart (desktop, grid only) */}
-        {inStock && !isList && (
+        {isInStock && !isList && (
           <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-150 bg-blue-600 text-white text-xs font-medium text-center py-1.5 hidden lg:block">
             + Add to cart
           </div>
@@ -121,10 +143,10 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
           <span className="font-mono font-bold text-gray-900 text-base">
             {formatPrice(price)}
           </span>
-          {originalPrice && (
+          {strikePrice && strikePrice > price && (
             <>
               <span className="font-mono text-xs text-gray-400 line-through">
-                {formatPrice(originalPrice)}
+                {formatPrice(strikePrice)}
               </span>
               {discountPct && (
                 <span className="text-xs font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
@@ -140,6 +162,11 @@ export function ProductCard({ product, variant = "grid" }: ProductCardProps) {
           <span className="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium border border-blue-100">
             COD
           </span>
+          {isLowStock && (
+            <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-50 text-yellow-700 border border-yellow-200 font-medium">
+              Low stock
+            </span>
+          )}
           {soldCount !== undefined && soldCount > 0 && (
             <span className="text-xs px-1.5 py-0.5 rounded bg-gray-50 text-gray-500 border border-gray-200">
               {soldCount.toLocaleString("en-IN")} sold

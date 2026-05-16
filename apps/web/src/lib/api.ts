@@ -1,7 +1,9 @@
 import axios from "axios";
 
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api",
+  baseURL: BASE,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -24,6 +26,12 @@ api.interceptors.response.use(
     return Promise.reject(err);
   },
 );
+
+// Public API — no auth header, no 401 redirect to /login
+export const publicApi = axios.create({
+  baseURL: BASE + "/v1",
+  headers: { "Content-Type": "application/json" },
+});
 
 export async function get<T>(url: string, params?: Record<string, unknown>): Promise<T> {
   const res = await api.get<{ data: T }>(url, { params });

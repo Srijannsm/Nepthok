@@ -4,8 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { MobileTabBar } from "@/components/marketplace/MobileTabBar";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+import { publicApi } from "@/lib/api";
 
 interface Product {
   id: string;
@@ -23,19 +22,6 @@ interface Product {
   wholesaleTiers?: { minQty: number; price: number }[];
 }
 
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
-interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
 const SORT_OPTIONS = [
   { value: "relevance", label: "Relevance" },
   { value: "price_asc", label: "Price: Low to High" },
@@ -50,8 +36,6 @@ const SUB_CATEGORIES: Record<string, string[]> = {
   cables: ["USB-C", "Lightning", "Micro-USB", "Braided"],
   earphones: ["Wired", "Wireless", "TWS", "Over-ear"],
 };
-
-const SELLERS = ["TechHub Nepal", "GadgetStore KTM", "MobilePro Nepal", "SmartTech Pvt", "DigitalBazar"];
 
 function slugToLabel(slug: string) {
   return slug
@@ -77,7 +61,6 @@ interface ActiveFilters {
   priceMin: number;
   priceMax: number;
   subCategories: string[];
-  sellers: string[];
   cod: boolean;
   verified: boolean;
   bulkPricing: boolean;
@@ -92,6 +75,7 @@ export default function CategoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [sort, setSort] = useState("relevance");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [mobileSortOpen, setMobileSortOpen] = useState(false);
@@ -100,35 +84,55 @@ export default function CategoryPage() {
     priceMin: 0,
     priceMax: 5000,
     subCategories: [],
-    sellers: [],
     cod: false,
     verified: false,
     bulkPricing: false,
     minRating: false,
   });
 
+  // Resolve categoryId from slug
+  useEffect(() => {
+    publicApi
+      .get<{ success: boolean; data: unknown }>("/categories")
+      .then((res) => {
+        const d = res.data.data;
+        const arr: { id: string; slug: string }[] = Array.isArray(d)
+          ? d
+          : Array.isArray((d as any)?.items)
+          ? (d as any).items
+          : [];
+        const match = arr.find((c) => c.slug === slug);
+        if (match) setCategoryId(match.id);
+      })
+      .catch(() => {});
+  }, [slug]);
+
   const subCats = SUB_CATEGORIES[slug] ?? ["All"];
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        category: slug,
+      const params: Record<string, string> = {
         page: "1",
         pageSize: "24",
         sort,
-      });
-      if (filters.priceMin > 0) params.set("priceMin", String(filters.priceMin));
-      if (filters.priceMax < 5000) params.set("priceMax", String(filters.priceMax));
-      if (filters.subCategories.length > 0) params.set("subCategory", filters.subCategories.join(","));
-      if (filters.sellers.length > 0) params.set("sellers", filters.sellers.join(","));
+      };
+      // Use resolved categoryId when available, fall back to slug param
+      if (categoryId) {
+        params.categoryId = categoryId;
+      } else {
+        params.category = slug;
+      }
+      if (filters.priceMin > 0) params.priceMin = String(filters.priceMin);
+      if (filters.priceMax < 5000) params.priceMax = String(filters.priceMax);
+      if (filters.subCategories.length > 0) params.subCategory = filters.subCategories.join(",");
 
-      const res = await fetch(`${API_BASE}/products?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      const json: ApiResponse<PaginatedResponse<Product>> = await res.json();
+      const res = await publicApi.get<{ success: boolean; data: unknown }>("/products", { params });
+      const json = res.data;
       if (json.success) {
-        setProducts(json.data.data);
-        setTotal(json.data.total);
+        const d = json.data as any;
+        setProducts(d?.items ?? d?.data ?? []);
+        setTotal(d?.total ?? 0);
       }
     } catch {
       setProducts([]);
@@ -136,7 +140,7 @@ export default function CategoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [slug, sort, filters]);
+  }, [slug, categoryId, sort, filters]);
 
   useEffect(() => {
     fetchProducts();
@@ -151,22 +155,10 @@ export default function CategoryPage() {
     }));
   }
 
-  function toggleSeller(val: string) {
-    setFilters((f) => ({
-      ...f,
-      sellers: f.sellers.includes(val)
-        ? f.sellers.filter((s) => s !== val)
-        : [...f.sellers, val],
-    }));
-  }
-
   function removeFilter(type: keyof ActiveFilters, val?: string) {
     setFilters((f) => {
       if (type === "subCategories" && val) {
         return { ...f, subCategories: f.subCategories.filter((s) => s !== val) };
-      }
-      if (type === "sellers" && val) {
-        return { ...f, sellers: f.sellers.filter((s) => s !== val) };
       }
       if (type === "cod") return { ...f, cod: false };
       if (type === "verified") return { ...f, verified: false };
@@ -182,10 +174,6 @@ export default function CategoryPage() {
     ...filters.subCategories.map((s) => ({
       label: s,
       onRemove: () => removeFilter("subCategories", s),
-    })),
-    ...filters.sellers.map((s) => ({
-      label: s,
-      onRemove: () => removeFilter("sellers", s),
     })),
     ...(filters.cod ? [{ label: "COD", onRemove: () => removeFilter("cod") }] : []),
     ...(filters.verified ? [{ label: "Verified Seller", onRemove: () => removeFilter("verified") }] : []),
@@ -275,26 +263,6 @@ export default function CategoryPage() {
           </div>
         </div>
       )}
-
-      {/* Seller filter */}
-      <div>
-        <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3">
-          Seller
-        </h3>
-        <div className="flex flex-col gap-2">
-          {SELLERS.map((seller) => (
-            <label key={seller} className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={filters.sellers.includes(seller)}
-                onChange={() => toggleSeller(seller)}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700 group-hover:text-gray-900 truncate">{seller}</span>
-            </label>
-          ))}
-        </div>
-      </div>
 
       {/* Trust filters */}
       <div>
@@ -433,7 +401,6 @@ export default function CategoryPage() {
                       priceMin: 0,
                       priceMax: 5000,
                       subCategories: [],
-                      sellers: [],
                       cod: false,
                       verified: false,
                       bulkPricing: false,
@@ -519,7 +486,6 @@ export default function CategoryPage() {
                     priceMin: 0,
                     priceMax: 5000,
                     subCategories: [],
-                    sellers: [],
                     cod: false,
                     verified: false,
                     bulkPricing: false,

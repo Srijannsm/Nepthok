@@ -9,8 +9,7 @@ import { ProductCard } from "@/components/marketplace/ProductCard";
 import { QuantityStepper } from "@/components/marketplace/QuantityStepper";
 import { WholesalePricing } from "@/components/marketplace/WholesalePricing";
 import { useCartStore } from "@/store/cart.store";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+import { publicApi } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -228,17 +227,16 @@ export default function ProductDetailPage() {
     setLoading(true);
     setError(null);
 
-    fetch(`${API_BASE}/products/${id}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Product not found");
-        const json = await res.json();
-        if (!json.success) throw new Error(json.message || "Failed to load");
-        const p = json.data as ProductDetail;
+    publicApi
+      .get<{ success: boolean; data: ProductDetail; message?: string }>(`/products/${id}`)
+      .then((res) => {
+        if (!res.data.success) throw new Error(res.data.message || "Failed to load");
+        const p = res.data.data;
         setProduct(p);
         setCurrentPricePerUnit(p.price);
       })
       .catch((err: Error) => {
-        setError(err.message);
+        setError(err.message ?? "Product not found");
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -246,18 +244,14 @@ export default function ProductDetailPage() {
   // ── Fetch related products ───────────────────────────────────────────────
   useEffect(() => {
     if (!product?.seller?.tenantId) return;
-    fetch(`${API_BASE}/products?tenantId=${product.seller.tenantId}&limit=3`)
-      .then(async (res) => {
-        if (!res.ok) return;
-        const json = await res.json();
-        if (!json.success) return;
-        // Support both paginated and direct array shapes
-        const arr: RelatedProduct[] = Array.isArray(json.data)
-          ? json.data
-          : Array.isArray(json.data?.data)
-          ? json.data.data
-          : [];
-        // Exclude current product
+    publicApi
+      .get<{ success: boolean; data: unknown }>("/products", {
+        params: { tenantId: product.seller.tenantId, pageSize: 4 },
+      })
+      .then((res) => {
+        if (!res.data.success) return;
+        const d = res.data.data as any;
+        const arr: RelatedProduct[] = d?.items ?? d?.data ?? (Array.isArray(d) ? d : []);
         setRelatedProducts(arr.filter((p) => p.id !== id).slice(0, 3));
       })
       .catch(() => {});
@@ -268,16 +262,19 @@ export default function ProductDetailPage() {
     async (quantity: number) => {
       if (!id) return;
       try {
-        const res = await fetch(`${API_BASE}/products/${id}/price?quantity=${quantity}`);
-        if (!res.ok) return;
-        const json = await res.json();
-        if (json.success && typeof json.data?.price === "number") {
-          setCurrentPricePerUnit(json.data.price);
-        } else if (json.success && typeof json.data === "number") {
-          setCurrentPricePerUnit(json.data);
+        const res = await publicApi.get<{ success: boolean; data: unknown }>(
+          `/products/${id}/price`,
+          { params: { quantity } }
+        );
+        if (!res.data.success) return;
+        const d = res.data.data as any;
+        if (typeof d?.price === "number") {
+          setCurrentPricePerUnit(d.price);
+        } else if (typeof d === "number") {
+          setCurrentPricePerUnit(d);
         }
       } catch {
-        // silently ignore — fall back to priceTiers client-side
+        // fall back to priceTiers client-side
       }
     },
     [id]

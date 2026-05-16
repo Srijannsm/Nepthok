@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, type FormEvent } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { MobileTabBar } from "@/components/marketplace/MobileTabBar";
 import { useCartStore } from "@/store/cart.store";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+import { publicApi } from "@/lib/api";
 
 interface Product {
   id: string;
@@ -23,19 +22,6 @@ interface Product {
   imageUrl?: string;
   inStock?: boolean;
   wholesaleTiers?: { minQty: number; price: number }[];
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
-interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
 }
 
 const SORT_OPTIONS = [
@@ -70,7 +56,7 @@ function ProductSkeleton() {
   );
 }
 
-export default function SearchPage() {
+function SearchPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams?.get("q") ?? "";
@@ -94,18 +80,14 @@ export default function SearchPage() {
     }
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        search: q,
-        page: "1",
-        pageSize: "24",
-        sort: sortVal,
+      const res = await publicApi.get<{ success: boolean; data: unknown }>("/products", {
+        params: { search: q, page: 1, pageSize: 24, sort: sortVal },
       });
-      const res = await fetch(`${API_BASE}/products?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      const json: ApiResponse<PaginatedResponse<Product>> = await res.json();
+      const json = res.data;
       if (json.success) {
-        setProducts(json.data.data);
-        setTotal(json.data.total);
+        const d = json.data as any;
+        setProducts(d?.items ?? d?.data ?? []);
+        setTotal(d?.total ?? 0);
       }
     } catch {
       setProducts([]);
@@ -390,5 +372,21 @@ export default function SearchPage() {
 
       <MobileTabBar active="search" />
     </div>
+  );
+}
+
+function SearchFallback() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <p className="text-gray-400 text-sm animate-pulse">Loading…</p>
+    </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchFallback />}>
+      <SearchPageContent />
+    </Suspense>
   );
 }

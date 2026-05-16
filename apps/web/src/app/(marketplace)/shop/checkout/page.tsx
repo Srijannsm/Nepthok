@@ -3,9 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cart.store";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+import { publicApi } from "@/lib/api";
 
 const SAVED_ADDRESS_KEY = "nepthok_saved_address";
 const LAST_ORDER_KEY = "nepthok_last_order";
@@ -304,21 +302,16 @@ export default function CheckoutPage() {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/orders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const res = await publicApi.post<{ success: boolean; data: { id: string; orderNumber: string }; message?: string }>(
+        "/orders",
+        body
+      );
 
-      if (!res.ok) {
-        const json = (await res.json()) as { message?: string };
-        throw new Error(json.message || "Failed to place order.");
+      if (!res.data.success) {
+        throw new Error(res.data.message || "Failed to place order.");
       }
 
-      const json = (await res.json()) as {
-        data: { id: string; orderNumber: string };
-      };
-      const { id: orderId, orderNumber } = json.data;
+      const { id: orderId, orderNumber } = res.data.data;
 
       // Save last order to localStorage
       try {
