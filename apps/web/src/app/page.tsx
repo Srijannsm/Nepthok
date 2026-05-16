@@ -11,7 +11,7 @@ export default function Home() {
   useEffect(() => {
     if (!hydrated) return;
     if (!isAuthenticated) {
-      router.replace("/login");
+      router.replace("/shop");
       return;
     }
     if (user?.role === "SUPER_ADMIN") {
