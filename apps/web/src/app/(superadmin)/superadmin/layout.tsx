@@ -4,88 +4,131 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
-  BarChart3,
-  CreditCard,
-  LayoutDashboard,
-  LogOut,
-  RefreshCw,
-  ShoppingBag,
-  Store,
-  Tag,
+  BarChart3, CreditCard, LayoutDashboard,
+  LogOut, RefreshCw, ShoppingBag, Store, Tag,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { useAuthStore } from "../../../store/auth.store";
+import { useQuery } from "@tanstack/react-query";
+import { get } from "@/lib/api";
 
-const sidebarItems = [
-  { href: "/superadmin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/superadmin/sellers", label: "Sellers", icon: Store },
-  { href: "/superadmin/plans", label: "Plans", icon: CreditCard },
+const SB = {
+  bg:            "#0f1419",
+  border:        "rgba(255,255,255,0.07)",
+  muted:         "rgba(255,255,255,0.40)",
+  normal:        "rgba(255,255,255,0.68)",
+  activeText:    "#ffffff",
+  activeBg:      "rgba(34,197,94,0.13)",
+  activeBorder:  "#22c55e",
+  brandGreen:    "#16a34a",
+  labelGreen:    "#4ade80",
+};
+
+const NAV = [
+  { href: "/superadmin",               label: "Dashboard",     icon: LayoutDashboard, exact: true },
+  { href: "/superadmin/sellers",       label: "Sellers",       icon: Store,           badge: "pending" },
+  { href: "/superadmin/plans",         label: "Plans",         icon: CreditCard },
   { href: "/superadmin/subscriptions", label: "Subscriptions", icon: RefreshCw },
-  { href: "/superadmin/categories", label: "Categories", icon: Tag },
-  { href: "/superadmin/orders", label: "Orders", icon: ShoppingBag },
-  { href: "/superadmin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/superadmin/categories",    label: "Categories",    icon: Tag },
+  { href: "/superadmin/orders",        label: "Orders",        icon: ShoppingBag },
+  { href: "/superadmin/analytics",     label: "Analytics",     icon: BarChart3 },
 ];
+
+interface PlatformData { summary: { pendingApproval: number } }
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, hydrated, logout } = useAuthStore();
-  const router = useRouter();
+  const router   = useRouter();
   const pathname = usePathname();
+
+  const { data } = useQuery<PlatformData>({
+    queryKey: ["superadmin", "platform"],
+    queryFn: () => get<PlatformData>("/analytics/platform?period=30d"),
+    enabled: !!(hydrated && isAuthenticated && user?.role === "SUPER_ADMIN"),
+    staleTime: 60_000,
+  });
+  const pendingCount = data?.summary?.pendingApproval ?? 0;
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!isAuthenticated) {
-      router.replace("/login");
-      return;
-    }
-    if (user && user.role !== "SUPER_ADMIN") {
-      router.replace("/");
-    }
+    if (!isAuthenticated) { router.replace("/login"); return; }
+    if (user?.role !== "SUPER_ADMIN") router.replace("/");
   }, [isAuthenticated, user, router, hydrated]);
 
   if (!hydrated || !isAuthenticated || !user) return null;
 
   return (
-    <div className="flex h-screen bg-background">
-      <aside className="flex w-60 flex-col border-r bg-card flex-shrink-0">
-        <div className="p-5 border-b flex items-center gap-2">
-          <span className="text-xl font-bold text-primary">Nepthok</span>
-          <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded px-1.5 py-0.5">
-            Super Admin
-          </span>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--nk-bg)" }}>
+      {/* ── Dark sidebar ── */}
+      <aside style={{
+        width: 220, flexShrink: 0, display: "flex", flexDirection: "column",
+        background: SB.bg, borderRight: `1px solid ${SB.border}`,
+      }}>
+        {/* Brand */}
+        <div style={{ padding: "18px 16px 16px", borderBottom: `1px solid ${SB.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 9, background: SB.brandGreen, flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em",
+            boxShadow: "0 0 0 1px rgba(255,255,255,0.12) inset",
+          }}>N</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.022em", color: "#fff", lineHeight: 1.1 }}>Nepthok</div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: SB.labelGreen, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 3 }}>Super Admin</div>
+          </div>
         </div>
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {sidebarItems.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                pathname === href || (href !== "/superadmin" && pathname.startsWith(href))
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          ))}
+
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: "10px 8px", display: "flex", flexDirection: "column", gap: 1, overflowY: "auto" }}>
+          {NAV.map(({ href, label, icon: Icon, exact, badge }) => {
+            const active = exact ? pathname === href : (pathname === href || pathname.startsWith(href + "/"));
+            const hasBadge = badge === "pending" && pendingCount > 0;
+            return (
+              <Link key={href} href={href} style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "7px 10px 7px 9px", borderRadius: 6,
+                fontSize: 13, fontWeight: active ? 600 : 400,
+                color: active ? SB.activeText : SB.normal,
+                background: active ? SB.activeBg : "transparent",
+                borderLeft: `2px solid ${active ? SB.activeBorder : "transparent"}`,
+                textDecoration: "none", transition: "background 0.1s, color 0.1s",
+              }}>
+                <Icon size={14} strokeWidth={active ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
+                <span style={{ flex: 1 }}>{label}</span>
+                {hasBadge && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, lineHeight: 1,
+                    background: "#ef4444", color: "#fff", borderRadius: 999,
+                    padding: "2px 5px", minWidth: 18, textAlign: "center",
+                  }}>{pendingCount}</span>
+                )}
+              </Link>
+            );
+          })}
         </nav>
-        <div className="p-4 border-t space-y-2">
-          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
+
+        {/* Footer */}
+        <div style={{ padding: "10px 14px 14px", borderTop: `1px solid ${SB.border}` }}>
+          <div style={{ fontSize: 11.5, color: SB.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 8 }}>
+            {user.email}
+          </div>
+          <button
             onClick={logout}
+            style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "5px 6px",
+              background: "transparent", border: "none", cursor: "pointer", borderRadius: 5,
+              fontSize: 12, color: SB.muted, width: "100%", textAlign: "left",
+              transition: "color 0.1s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#f87171")}
+            onMouseLeave={e => (e.currentTarget.style.color = SB.muted)}
           >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+            <LogOut size={13} /> Sign out
+          </button>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">
+      {/* Main content */}
+      <main style={{ flex: 1, overflowY: "auto", background: "var(--nk-bg)" }}>
         {children}
       </main>
     </div>

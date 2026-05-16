@@ -2,35 +2,33 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Store } from "lucide-react";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { get, patch, post } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { Tenant, PaginatedResponse } from "../../../../types";
-import { StatusBadge } from "../../../../components/shared/status-badge";
-import { EmptyState } from "../../../../components/shared/empty-state";
-import { PageHeader } from "../../../../components/shared/page-header";
 import { SellerDetail } from "../../../../components/superadmin/seller-detail";
 
+const G = "#16a34a";
+
 const STATUS_TABS = [
-  { label: "All", value: "" },
-  { label: "Pending", value: "PENDING" },
-  { label: "Active", value: "ACTIVE" },
+  { label: "All",       value: "" },
+  { label: "Pending",   value: "PENDING" },
+  { label: "Active",    value: "ACTIVE" },
   { label: "Suspended", value: "SUSPENDED" },
   { label: "Cancelled", value: "CANCELLED" },
 ];
+
+const STATUS_COLOR: Record<string, string> = {
+  ACTIVE: "var(--nk-success)", PENDING: "#ca8a04", SUSPENDED: "var(--nk-danger)", CANCELLED: "var(--nk-muted)",
+};
 
 function generatePassword(): string {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
@@ -41,25 +39,26 @@ function toSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+const inputCls = "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+
 export default function SellersPage() {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [page, setPage] = useState(1);
+  const [search, setSearch]           = useState("");
+  const [status, setStatus]           = useState("");
+  const [page, setPage]               = useState(1);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
-  const [suspendTarget, setSuspendTarget] = useState<Tenant | null>(null);
-  const [suspendReason, setSuspendReason] = useState("");
-  const [addOpen, setAddOpen] = useState(false);
+  const [suspendTarget, setSuspendTarget]   = useState<Tenant | null>(null);
+  const [suspendReason, setSuspendReason]   = useState("");
+  const [addOpen, setAddOpen]         = useState(false);
   const [credDialogData, setCredDialogData] = useState<{ storeName: string; email: string; password: string } | null>(null);
 
-  // Add Seller form state
-  const [formName, setFormName] = useState("");
-  const [formSlug, setFormSlug] = useState("");
-  const [formOwnerName, setFormOwnerName] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-  const [formPhone, setFormPhone] = useState("");
-  const [formPassword, setFormPassword] = useState("");
+  const [formName, setFormName]               = useState("");
+  const [formSlug, setFormSlug]               = useState("");
+  const [formOwnerName, setFormOwnerName]     = useState("");
+  const [formEmail, setFormEmail]             = useState("");
+  const [formPhone, setFormPhone]             = useState("");
+  const [formPassword, setFormPassword]       = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [formErrors, setFormErrors]           = useState<Record<string, string>>({});
 
   const qc = useQueryClient();
 
@@ -73,64 +72,47 @@ export default function SellersPage() {
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => patch(`/tenants/${id}/approve`, {}),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["superadmin", "sellers"] });
-      toast.success("Seller approved successfully");
-    },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to approve seller"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["superadmin"] }); toast.success("Seller approved"); },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? "Failed to approve"),
   });
 
   const suspendMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      patch(`/tenants/${id}/suspend`, { reason }),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => patch(`/tenants/${id}/suspend`, { reason }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["superadmin", "sellers"] });
-      toast.success("Seller suspended successfully");
-      setSuspendTarget(null);
-      setSuspendReason("");
+      qc.invalidateQueries({ queryKey: ["superadmin"] });
+      toast.success("Seller suspended");
+      setSuspendTarget(null); setSuspendReason("");
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to suspend seller"),
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? "Failed to suspend"),
   });
 
   const addSellerMutation = useMutation({
-    mutationFn: (data: {
-      name: string; slug: string; ownerName: string; email: string;
-      phone: string; password: string; description?: string;
-    }) => post(`/tenants`, data),
+    mutationFn: (data: { name: string; slug: string; ownerName: string; email: string; phone: string; password: string; description?: string }) =>
+      post("/tenants", data),
     onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: ["superadmin", "sellers"] });
+      qc.invalidateQueries({ queryKey: ["superadmin"] });
       setAddOpen(false);
       setCredDialogData({ storeName: vars.name, email: vars.email, password: vars.password });
       resetAddForm();
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to create seller"),
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? "Failed to create seller"),
   });
 
   function resetAddForm() {
-    setFormName("");
-    setFormSlug("");
-    setFormOwnerName("");
-    setFormEmail("");
-    setFormPhone("");
-    setFormPassword("");
-    setFormDescription("");
-    setFormErrors({});
+    setFormName(""); setFormSlug(""); setFormOwnerName(""); setFormEmail("");
+    setFormPhone(""); setFormPassword(""); setFormDescription(""); setFormErrors({});
   }
 
-  function openAddSheet() {
-    resetAddForm();
-    setFormPassword(generatePassword());
-    setAddOpen(true);
-  }
+  function openAddSheet() { resetAddForm(); setFormPassword(generatePassword()); setAddOpen(true); }
 
   function validateAddForm(): boolean {
     const errors: Record<string, string> = {};
-    if (formName.trim().length < 2) errors.name = "Store name must be at least 2 characters.";
-    if (!/^[a-z0-9-]{2,}$/.test(formSlug)) errors.slug = "Slug must be at least 2 chars, lowercase letters, numbers, and hyphens only.";
-    if (formOwnerName.trim().length < 2) errors.ownerName = "Owner name must be at least 2 characters.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail)) errors.email = "Enter a valid email address.";
-    if (!/^(\+977\d{9,10}|9\d{9})$/.test(formPhone.replace(/\s/g, ""))) errors.phone = "Enter a valid Nepal phone number (e.g. +977XXXXXXXXXX or 9XXXXXXXXX).";
-    if (formPassword.length < 8) errors.password = "Password must be at least 8 characters.";
+    if (formName.trim().length < 2) errors.name = "At least 2 characters.";
+    if (!/^[a-z0-9-]{2,}$/.test(formSlug)) errors.slug = "Lowercase letters, numbers, hyphens only.";
+    if (formOwnerName.trim().length < 2) errors.ownerName = "At least 2 characters.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail)) errors.email = "Valid email required.";
+    if (!/^(\+977\d{9,10}|9\d{9})$/.test(formPhone.replace(/\s/g, ""))) errors.phone = "Valid Nepal phone required.";
+    if (formPassword.length < 8) errors.password = "At least 8 characters.";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -139,143 +121,150 @@ export default function SellersPage() {
     e.preventDefault();
     if (!validateAddForm()) return;
     addSellerMutation.mutate({
-      name: formName.trim(),
-      slug: formSlug.trim(),
-      ownerName: formOwnerName.trim(),
-      email: formEmail.trim(),
-      phone: formPhone.trim(),
-      password: formPassword,
+      name: formName.trim(), slug: formSlug.trim(), ownerName: formOwnerName.trim(),
+      email: formEmail.trim(), phone: formPhone.trim(), password: formPassword,
       description: formDescription.trim() || undefined,
     });
   }
 
-  const tenants = data?.items ?? [];
+  const tenants    = data?.items ?? [];
   const totalPages = data?.totalPages ?? 1;
-
-  const inputCls = "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+  const totalCount = data?.total ?? 0;
 
   return (
-    <div className="p-6">
-      <PageHeader
-        title="Sellers"
-        action={
-          <Button onClick={openAddSheet}>Add Seller</Button>
-        }
-      />
+    <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 18 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em", margin: 0 }}>Sellers</h1>
+          {!isLoading && <div style={{ fontSize: 12.5, color: "var(--nk-muted)", marginTop: 3 }}>{totalCount} total</div>}
+        </div>
+        <button className="nk-btn nk-btn-primary" style={{ background: G, borderColor: G }} onClick={openAddSheet}>
+          Add Seller
+        </button>
+      </div>
 
-      <div className="space-y-3 mb-4">
-        <div className="relative max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ position: "relative" }}>
+          <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--nk-muted)", pointerEvents: "none" }} />
+          <input
+            className={inputCls}
+            style={{ paddingLeft: 30, width: 220 }}
             placeholder="Search sellers…"
-            className="pl-8"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <div className="flex gap-1 flex-wrap">
+        <div style={{ display: "flex", gap: 3, padding: 3, background: "var(--nk-bg-2)", borderRadius: 7, border: "1px solid var(--nk-border)" }}>
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
               onClick={() => { setStatus(tab.value); setPage(1); }}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                status === tab.value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {tab.label}
-            </button>
+              className="nk-btn"
+              style={{
+                height: 26, fontSize: 12, padding: "0 12px",
+                background: status === tab.value ? "var(--nk-surface)" : "transparent",
+                color: status === tab.value ? "var(--nk-fg)" : "var(--nk-muted)",
+                boxShadow: status === tab.value ? "var(--nk-shadow-sm)" : "none",
+              }}
+            >{tab.label}</button>
           ))}
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Store Name</TableHead>
-              <TableHead>Slug</TableHead>
-              <TableHead>Owner Email</TableHead>
-              <TableHead>Plan</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="w-36">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 7 }).map((__, j) => (
-                      <TableCell key={j}><Skeleton className="h-6 w-full" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              : tenants.length === 0
-              ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="p-0">
-                    <EmptyState
-                      icon={Store}
-                      title="No sellers found"
-                      description="Seller registrations will appear here."
-                    />
-                  </TableCell>
-                </TableRow>
-              )
-              : tenants.map((tenant) => (
-                  <TableRow
-                    key={tenant.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setSelectedTenant(tenant)}
-                  >
-                    <TableCell className="text-sm font-medium">{tenant.name}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{tenant.slug}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{tenant.owner?.email ?? "—"}</TableCell>
-                    <TableCell className="text-xs">
-                      {tenant.subscription?.plan?.tier ?? <span className="text-muted-foreground">None</span>}
-                    </TableCell>
-                    <TableCell><StatusBadge status={tenant.status} /></TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(tenant.createdAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button size="sm" variant="ghost" onClick={() => setSelectedTenant(tenant)}>
-                          View
-                        </Button>
+      {/* Table */}
+      <div className="nk-card" style={{ padding: 0 }}>
+        <table className="nk-table">
+          <thead>
+            <tr>
+              <th>Store</th>
+              <th>Slug</th>
+              <th>Owner</th>
+              <th>Plan</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th style={{ width: 150 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <tr key={i}>
+                  {Array.from({ length: 7 }).map((__, j) => (
+                    <td key={j}><div style={{ height: 18, background: "var(--nk-bg-2)", borderRadius: 4 }} /></td>
+                  ))}
+                </tr>
+              ))
+            ) : tenants.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: "center", padding: "40px 16px", color: "var(--nk-muted)", fontSize: 13 }}>
+                  No sellers found.
+                </td>
+              </tr>
+            ) : (
+              tenants.map((tenant) => {
+                const statusColor = STATUS_COLOR[tenant.status] ?? "var(--nk-muted)";
+                return (
+                  <tr key={tenant.id} style={{ cursor: "pointer" }} onClick={() => setSelectedTenant(tenant)}>
+                    <td style={{ fontSize: 12.5, fontWeight: 600 }}>{tenant.name}</td>
+                    <td style={{ fontSize: 11.5, fontFamily: "monospace", color: "var(--nk-muted)" }}>{tenant.slug}</td>
+                    <td style={{ fontSize: 12, color: "var(--nk-muted)" }}>{tenant.owner?.email ?? "—"}</td>
+                    <td>
+                      {tenant.subscription?.plan?.tier ? (
+                        <span style={{
+                          fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 999,
+                          background: tenant.subscription.plan.tier === "PRO" ? "rgba(22,163,74,0.1)" : "var(--nk-bg-2)",
+                          color: tenant.subscription.plan.tier === "PRO" ? G : "var(--nk-muted)",
+                        }}>{tenant.subscription.plan.tier}</span>
+                      ) : <span style={{ fontSize: 11.5, color: "var(--nk-muted)" }}>None</span>}
+                    </td>
+                    <td>
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 999,
+                        background: `${statusColor}18`, color: statusColor,
+                      }}>{tenant.status}</span>
+                    </td>
+                    <td style={{ fontSize: 11.5, color: "var(--nk-muted)" }}>{formatDate(tenant.createdAt)}</td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button
+                          className="nk-btn"
+                          style={{ fontSize: 11.5, padding: "3px 10px", border: "1px solid var(--nk-border)" }}
+                          onClick={() => setSelectedTenant(tenant)}
+                        >View</button>
                         {tenant.status === "PENDING" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
+                          <button
+                            className="nk-btn nk-btn-primary"
+                            style={{ fontSize: 11.5, padding: "3px 10px", background: G, borderColor: G }}
                             disabled={approveMutation.isPending}
                             onClick={() => approveMutation.mutate(tenant.id)}
-                          >
-                            Approve
-                          </Button>
+                          >Approve</button>
                         )}
                         {tenant.status === "ACTIVE" && (
-                          <Button
-                            size="sm"
-                            variant="destructive"
+                          <button
+                            className="nk-btn"
+                            style={{ fontSize: 11.5, padding: "3px 10px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: "var(--nk-danger)" }}
                             onClick={() => setSuspendTarget(tenant)}
-                          >
-                            Suspend
-                          </Button>
+                          >Suspend</button>
                         )}
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-          </TableBody>
-        </Table>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, color: "var(--nk-muted)" }}>
           <span>Page {page} of {totalPages}</span>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="nk-btn" style={{ border: "1px solid var(--nk-border)", padding: "4px 12px", fontSize: 12 }} disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
+            <button className="nk-btn" style={{ border: "1px solid var(--nk-border)", padding: "4px 12px", fontSize: 12 }} disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
           </div>
         </div>
       )}
@@ -283,110 +272,41 @@ export default function SellersPage() {
       {/* Add Seller sheet */}
       <Sheet open={addOpen} onOpenChange={(open) => { if (!open) { setAddOpen(false); resetAddForm(); } }}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader className="mb-4">
-            <SheetTitle>Add Seller</SheetTitle>
-          </SheetHeader>
+          <SheetHeader className="mb-4"><SheetTitle>Add Seller</SheetTitle></SheetHeader>
           <form onSubmit={handleAddSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Store Name</label>
-              <input
-                className={inputCls}
-                placeholder="e.g. Kathmandu Crafts"
-                value={formName}
-                onChange={(e) => {
-                  setFormName(e.target.value);
-                  setFormSlug(toSlug(e.target.value));
-                }}
-              />
-              {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Store Slug</label>
-              <input
-                className={inputCls}
-                placeholder="e.g. kathmandu-crafts"
-                value={formSlug}
-                onChange={(e) => setFormSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-              />
-              {formErrors.slug && <p className="text-xs text-destructive">{formErrors.slug}</p>}
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Owner Full Name</label>
-              <input
-                className={inputCls}
-                placeholder="e.g. Ram Prasad"
-                value={formOwnerName}
-                onChange={(e) => setFormOwnerName(e.target.value)}
-              />
-              {formErrors.ownerName && <p className="text-xs text-destructive">{formErrors.ownerName}</p>}
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Owner Email</label>
-              <input
-                type="email"
-                className={inputCls}
-                placeholder="e.g. ram@example.com"
-                value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
-              />
-              {formErrors.email && <p className="text-xs text-destructive">{formErrors.email}</p>}
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Owner Phone</label>
-              <input
-                className={inputCls}
-                placeholder="e.g. +977XXXXXXXXXX or 9XXXXXXXXX"
-                value={formPhone}
-                onChange={(e) => setFormPhone(e.target.value)}
-              />
-              {formErrors.phone && <p className="text-xs text-destructive">{formErrors.phone}</p>}
-            </div>
+            {[
+              { label: "Store Name", value: formName, onChange: (v: string) => { setFormName(v); setFormSlug(toSlug(v)); }, placeholder: "e.g. Kathmandu Crafts", error: formErrors.name },
+              { label: "Store Slug", value: formSlug, onChange: (v: string) => setFormSlug(v.toLowerCase().replace(/[^a-z0-9-]/g, "")), placeholder: "e.g. kathmandu-crafts", error: formErrors.slug },
+              { label: "Owner Full Name", value: formOwnerName, onChange: setFormOwnerName, placeholder: "e.g. Ram Prasad", error: formErrors.ownerName },
+              { label: "Owner Email", value: formEmail, onChange: setFormEmail, placeholder: "e.g. ram@example.com", type: "email", error: formErrors.email },
+              { label: "Owner Phone", value: formPhone, onChange: setFormPhone, placeholder: "+977XXXXXXXXXX or 9XXXXXXXXX", error: formErrors.phone },
+            ].map(({ label, value, onChange, placeholder, type, error }) => (
+              <div key={label} className="space-y-1">
+                <label className="text-sm font-medium">{label}</label>
+                <input className={inputCls} type={type ?? "text"} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+                {error && <p className="text-xs text-destructive">{error}</p>}
+              </div>
+            ))}
 
             <div className="space-y-1">
               <label className="text-sm font-medium">Password</label>
               <div className="flex gap-2">
-                <input
-                  className={`${inputCls} flex-1 font-mono`}
-                  readOnly
-                  value={formPassword}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setFormPassword(generatePassword())}
-                >
-                  Regenerate
-                </Button>
+                <input className={`${inputCls} flex-1 font-mono`} readOnly value={formPassword} />
+                <button type="button" className="nk-btn" style={{ border: "1px solid var(--nk-border)", padding: "0 10px", fontSize: 12, flexShrink: 0 }} onClick={() => setFormPassword(generatePassword())}>Regenerate</button>
               </div>
               {formErrors.password && <p className="text-xs text-destructive">{formErrors.password}</p>}
             </div>
 
             <div className="space-y-1">
               <label className="text-sm font-medium">Description <span className="text-muted-foreground font-normal">(optional)</span></label>
-              <textarea
-                className={`${inputCls} h-20 resize-none py-2`}
-                placeholder="Brief description of the store…"
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-              />
+              <textarea className={`${inputCls} h-20 resize-none py-2`} placeholder="Brief description…" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} />
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button type="submit" disabled={addSellerMutation.isPending} className="flex-1">
+              <button type="submit" className="nk-btn nk-btn-primary" style={{ flex: 1, background: G, borderColor: G }} disabled={addSellerMutation.isPending}>
                 {addSellerMutation.isPending ? "Creating…" : "Create Seller"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => { setAddOpen(false); resetAddForm(); }}
-              >
-                Cancel
-              </Button>
+              </button>
+              <button type="button" className="nk-btn" style={{ border: "1px solid var(--nk-border)", padding: "0 14px" }} onClick={() => { setAddOpen(false); resetAddForm(); }}>Cancel</button>
             </div>
           </form>
         </SheetContent>
@@ -406,63 +326,49 @@ export default function SellersPage() {
         </SheetContent>
       </Sheet>
 
-      {/* Suspend confirmation dialog */}
+      {/* Suspend dialog */}
       <Dialog open={!!suspendTarget} onOpenChange={(open) => { if (!open) { setSuspendTarget(null); setSuspendReason(""); } }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Suspend {suspendTarget?.name}?</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Suspend {suspendTarget?.name}?</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
-            <p className="text-sm text-muted-foreground">
-              The seller will lose access to the admin panel. Provide a reason below.
-            </p>
-            <Input
-              placeholder="Reason for suspension (optional)"
-              value={suspendReason}
-              onChange={(e) => setSuspendReason(e.target.value)}
-            />
+            <p className="text-sm text-muted-foreground">The seller will lose access to the admin panel.</p>
+            <Input placeholder="Reason for suspension (optional)" value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setSuspendTarget(null); setSuspendReason(""); }}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
+            <button className="nk-btn" style={{ border: "1px solid var(--nk-border)", padding: "6px 14px", fontSize: 13 }} onClick={() => { setSuspendTarget(null); setSuspendReason(""); }}>Cancel</button>
+            <button
+              className="nk-btn"
+              style={{ background: "var(--nk-danger)", borderColor: "var(--nk-danger)", color: "#fff", padding: "6px 14px", fontSize: 13 }}
               disabled={suspendMutation.isPending}
               onClick={() => suspendTarget && suspendMutation.mutate({ id: suspendTarget.id, reason: suspendReason })}
             >
-              Suspend
-            </Button>
+              {suspendMutation.isPending ? "Suspending…" : "Suspend"}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Credentials dialog — cannot be dismissed until confirmed */}
+      {/* Credentials dialog */}
       <Dialog open={!!credDialogData} onOpenChange={() => {}}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Seller account created</DialogTitle>
-          </DialogHeader>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Seller account created</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2 text-sm">
-            <p className="text-muted-foreground">Share these credentials securely with the seller. This dialog cannot be dismissed until you confirm you have copied them.</p>
-            <div className="rounded-md border p-3 space-y-2 bg-muted/30">
-              <div><span className="text-muted-foreground">Store:</span> <span className="font-medium">{credDialogData?.storeName}</span></div>
-              <div><span className="text-muted-foreground">Login Email:</span> <span className="font-medium">{credDialogData?.email}</span></div>
-              <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-muted-foreground">Share these credentials securely with the seller.</p>
+            <div className="rounded-md border p-3 space-y-2 bg-muted/30 text-sm">
+              <div><span className="text-muted-foreground">Store:</span> <strong>{credDialogData?.storeName}</strong></div>
+              <div><span className="text-muted-foreground">Email:</span> <strong>{credDialogData?.email}</strong></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span className="text-muted-foreground">Password:</span>
-                <span className="font-mono font-medium">{credDialogData?.password}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => { navigator.clipboard.writeText(credDialogData?.password ?? ""); toast.success("Copied"); }}
-                >
-                  Copy
-                </Button>
+                <code className="font-mono font-medium">{credDialogData?.password}</code>
+                <button className="nk-btn" style={{ fontSize: 11.5, padding: "2px 8px", border: "1px solid var(--nk-border)" }}
+                  onClick={() => { navigator.clipboard.writeText(credDialogData?.password ?? ""); toast.success("Copied"); }}>Copy</button>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => setCredDialogData(null)}>I have copied the credentials</Button>
+            <button className="nk-btn nk-btn-primary" style={{ background: G, borderColor: G, padding: "6px 16px", fontSize: 13 }} onClick={() => setCredDialogData(null)}>
+              I have copied the credentials
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

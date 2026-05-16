@@ -2,50 +2,33 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Tag } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { get, post, patch, del } from "@/lib/api";
 import { Category } from "../../../../types";
-import { EmptyState } from "../../../../components/shared/empty-state";
-import { PageHeader } from "../../../../components/shared/page-header";
+
+const G = "#16a34a";
 
 function slugify(str: string) {
   return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
-type CategoryWithParent = Category & { parent?: { id: string; name: string } | null; isActive?: boolean };
+type CategoryWithParent = Category & { parent?: { id: string; name: string } | null; isActive?: boolean; _depth?: number };
 
-interface CatForm {
-  name: string;
-  slug: string;
-  description: string;
-  image: string;
-  parentId: string;
-  isActive: boolean;
-}
+interface CatForm { name: string; slug: string; description: string; image: string; parentId: string; isActive: boolean }
 
 const emptyForm: CatForm = { name: "", slug: "", description: "", image: "", parentId: "", isActive: true };
 
 export default function CategoriesPage() {
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingCat, setEditingCat] = useState<CategoryWithParent | null>(null);
+  const [sheetOpen, setSheetOpen]         = useState(false);
+  const [editingCat, setEditingCat]       = useState<CategoryWithParent | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<CategoryWithParent | null>(null);
-  const [form, setForm] = useState<CatForm>(emptyForm);
+  const [form, setForm]                   = useState<CatForm>(emptyForm);
   const qc = useQueryClient();
 
   const { data: categories, isLoading } = useQuery<CategoryWithParent[]>({
@@ -55,246 +38,179 @@ export default function CategoriesPage() {
 
   const createMutation = useMutation({
     mutationFn: (body: Partial<CatForm>) => post("/categories", body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["superadmin", "categories"] });
-      toast.success("Category created");
-      closeSheet();
-    },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to create category"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["superadmin", "categories"] }); toast.success("Category created"); closeSheet(); },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? "Failed"),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Partial<CatForm> }) => patch(`/categories/${id}`, body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["superadmin", "categories"] });
-      toast.success("Category updated");
-      closeSheet();
-    },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update category"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["superadmin", "categories"] }); toast.success("Category updated"); closeSheet(); },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? "Failed"),
   });
 
   const deactivateMutation = useMutation({
     mutationFn: (id: string) => del(`/categories/${id}`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["superadmin", "categories"] });
-      toast.success("Category deactivated");
-      setDeactivateTarget(null);
-    },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to deactivate category"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["superadmin", "categories"] }); toast.success("Category deactivated"); setDeactivateTarget(null); },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? "Failed"),
   });
 
-  function openCreate() {
-    setEditingCat(null);
-    setForm(emptyForm);
-    setSheetOpen(true);
-  }
-
+  function openCreate() { setEditingCat(null); setForm(emptyForm); setSheetOpen(true); }
   function openEdit(cat: CategoryWithParent) {
     setEditingCat(cat);
-    setForm({
-      name: cat.name,
-      slug: cat.slug,
-      description: "",
-      image: "",
-      parentId: "",
-      isActive: true,
-    });
+    setForm({ name: cat.name, slug: cat.slug, description: "", image: "", parentId: "", isActive: true });
     setSheetOpen(true);
   }
-
-  function closeSheet() {
-    setSheetOpen(false);
-    setEditingCat(null);
-    setForm(emptyForm);
-  }
-
+  function closeSheet() { setSheetOpen(false); setEditingCat(null); setForm(emptyForm); }
   function handleSave() {
-    const body: Partial<CatForm> = {
-      name: form.name,
-      slug: form.slug,
-      description: form.description || undefined,
-      image: form.image || undefined,
-      parentId: form.parentId || undefined,
-    };
-    if (editingCat) {
-      updateMutation.mutate({ id: editingCat.id, body });
-    } else {
-      createMutation.mutate(body);
-    }
+    const body: Partial<CatForm> = { name: form.name, slug: form.slug, description: form.description || undefined, image: form.image || undefined, parentId: form.parentId || undefined };
+    editingCat ? updateMutation.mutate({ id: editingCat.id, body }) : createMutation.mutate(body);
   }
-
-  const isPending = createMutation.isPending || updateMutation.isPending;
 
   const allCats: CategoryWithParent[] = [];
   function flatten(cats: CategoryWithParent[], depth = 0) {
     for (const cat of cats) {
-      allCats.push({ ...cat, _depth: depth } as CategoryWithParent & { _depth: number });
+      allCats.push({ ...cat, _depth: depth });
       if (cat.children?.length) flatten(cat.children as CategoryWithParent[], depth + 1);
     }
   }
   if (categories) flatten(categories);
 
-  return (
-    <div className="p-6">
-      <PageHeader
-        title="Categories"
-        action={<Button onClick={openCreate}><Plus className="h-4 w-4 mr-1.5" />Add Category</Button>}
-      />
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Slug</TableHead>
-              <TableHead>Parent</TableHead>
-              <TableHead>Subcategories</TableHead>
-              <TableHead className="w-36">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 5 }).map((__, j) => (
-                      <TableCell key={j}><Skeleton className="h-6 w-full" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              : allCats.length === 0
-              ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="p-0">
-                    <EmptyState
-                      icon={Tag}
-                      title="No categories yet"
-                      description="Add categories to organise products."
-                    />
-                  </TableCell>
-                </TableRow>
-              )
-              : allCats.map((cat) => {
-                  const depth = (cat as CategoryWithParent & { _depth?: number })._depth ?? 0;
-                  return (
-                    <TableRow key={cat.id}>
-                      <TableCell>
-                        <span
-                          className="text-sm font-medium"
-                          style={{ paddingLeft: depth * 16 }}
-                        >
-                          {depth > 0 && <span className="text-muted-foreground mr-1">└</span>}
-                          {cat.name}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{cat.slug}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {cat.parent?.name ?? <span className="text-muted-foreground/50">Root</span>}
-                      </TableCell>
-                      <TableCell>
-                        {(cat.children?.length ?? 0) > 0 && (
-                          <Badge variant="secondary">{cat.children!.length}</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(cat)}>Edit</Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setDeactivateTarget(cat)}
-                          >
-                            Deactivate
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-          </TableBody>
-        </Table>
+  return (
+    <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 18 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em", margin: 0 }}>Categories</h1>
+          <div style={{ fontSize: 12.5, color: "var(--nk-muted)", marginTop: 3 }}>Global product categories for all sellers</div>
+        </div>
+        <button className="nk-btn nk-btn-primary" style={{ background: G, borderColor: G, display: "flex", alignItems: "center", gap: 6 }} onClick={openCreate}>
+          <Plus size={14} /> Add Category
+        </button>
       </div>
 
-      {/* Add / Edit sheet */}
+      {/* Table */}
+      <div className="nk-card" style={{ padding: 0 }}>
+        <table className="nk-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Slug</th>
+              <th>Parent</th>
+              <th>Sub-categories</th>
+              <th style={{ width: 130 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i}>{Array.from({ length: 5 }).map((__, j) => <td key={j}><div style={{ height: 18, background: "var(--nk-bg-2)", borderRadius: 4 }} /></td>)}</tr>
+              ))
+            ) : allCats.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ textAlign: "center", padding: "36px 16px", fontSize: 13, color: "var(--nk-muted)" }}>
+                  No categories yet. Add one to organise products.
+                </td>
+              </tr>
+            ) : (
+              allCats.map((cat) => (
+                <tr key={cat.id}>
+                  <td>
+                    <span style={{ paddingLeft: (cat._depth ?? 0) * 16, fontSize: 12.5, fontWeight: (cat._depth ?? 0) === 0 ? 600 : 400 }}>
+                      {(cat._depth ?? 0) > 0 && <span style={{ color: "var(--nk-muted)", marginRight: 4 }}>└</span>}
+                      {cat.name}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: 11.5, fontFamily: "monospace", color: "var(--nk-muted)" }}>{cat.slug}</td>
+                  <td style={{ fontSize: 12.5, color: "var(--nk-muted)" }}>
+                    {cat.parent?.name ?? <span style={{ color: "var(--nk-border)", fontStyle: "italic" }}>Root</span>}
+                  </td>
+                  <td>
+                    {(cat.children?.length ?? 0) > 0 && (
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 7px", borderRadius: 999, background: "var(--nk-bg-2)", color: "var(--nk-muted)" }}>
+                        {cat.children!.length}
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button className="nk-btn" style={{ fontSize: 11.5, padding: "3px 10px", border: "1px solid var(--nk-border)" }} onClick={() => openEdit(cat)}>Edit</button>
+                      <button
+                        className="nk-btn"
+                        style={{ fontSize: 11.5, padding: "3px 10px", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", color: "var(--nk-danger)" }}
+                        onClick={() => setDeactivateTarget(cat)}
+                      >Deactivate</button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Add/Edit sheet */}
       <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) closeSheet(); }}>
         <SheetContent className="w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>{editingCat ? "Edit Category" : "Add Category"}</SheetTitle>
-          </SheetHeader>
+          <SheetHeader><SheetTitle>{editingCat ? "Edit Category" : "Add Category"}</SheetTitle></SheetHeader>
           <div className="space-y-4 mt-6">
             <div className="space-y-1.5">
               <Label>Name</Label>
-              <Input
-                value={form.name}
-                onChange={(e) => {
-                  const name = e.target.value;
-                  setForm((f) => ({ ...f, name, slug: editingCat ? f.slug : slugify(name) }));
-                }}
-              />
+              <Input value={form.name} onChange={(e) => { const n = e.target.value; setForm(f => ({ ...f, name: n, slug: editingCat ? f.slug : slugify(n) })); }} />
             </div>
             <div className="space-y-1.5">
               <Label>Slug</Label>
-              <Input
-                value={form.slug}
-                onChange={(e) => setForm((f) => ({ ...f, slug: slugify(e.target.value) }))}
-              />
+              <Input value={form.slug} onChange={(e) => setForm(f => ({ ...f, slug: slugify(e.target.value) }))} />
             </div>
             <div className="space-y-1.5">
               <Label>Description (optional)</Label>
-              <Textarea
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                rows={2}
-              />
+              <Textarea value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
             </div>
             <div className="space-y-1.5">
               <Label>Image URL (optional)</Label>
-              <Input
-                value={form.image}
-                onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
-                placeholder="https://..."
-              />
+              <Input value={form.image} onChange={(e) => setForm(f => ({ ...f, image: e.target.value }))} placeholder="https://…" />
             </div>
             <div className="space-y-1.5">
               <Label>Parent Category (optional)</Label>
               <select
                 className="flex h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.parentId}
-                onChange={(e) => setForm((f) => ({ ...f, parentId: e.target.value }))}
+                onChange={(e) => setForm(f => ({ ...f, parentId: e.target.value }))}
               >
                 <option value="">None (root category)</option>
-                {(categories ?? [])
-                  .filter((c) => !editingCat || c.id !== editingCat.id)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
+                {(categories ?? []).filter(c => !editingCat || c.id !== editingCat.id).map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
               </select>
             </div>
-            <Button className="w-full" onClick={handleSave} disabled={!form.name || !form.slug || isPending}>
+            <button
+              className="nk-btn nk-btn-primary"
+              style={{ width: "100%", justifyContent: "center", background: G, borderColor: G }}
+              onClick={handleSave}
+              disabled={!form.name || !form.slug || isPending}
+            >
               {editingCat ? "Save Changes" : "Create Category"}
-            </Button>
+            </button>
           </div>
         </SheetContent>
       </Sheet>
 
-      {/* Deactivate confirmation */}
+      {/* Deactivate dialog */}
       <Dialog open={!!deactivateTarget} onOpenChange={(open) => { if (!open) setDeactivateTarget(null); }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Deactivate "{deactivateTarget?.name}"?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">
-            This category will no longer appear for sellers. Categories with active subcategories cannot be deactivated.
-          </p>
+          <DialogHeader><DialogTitle>Deactivate "{deactivateTarget?.name}"?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">This category will no longer appear for sellers.</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeactivateTarget(null)}>Cancel</Button>
-            <Button
-              variant="destructive"
+            <button className="nk-btn" style={{ border: "1px solid var(--nk-border)", padding: "6px 14px", fontSize: 13 }} onClick={() => setDeactivateTarget(null)}>Cancel</button>
+            <button
+              className="nk-btn"
+              style={{ background: "var(--nk-danger)", borderColor: "var(--nk-danger)", color: "#fff", padding: "6px 14px", fontSize: 13 }}
               disabled={deactivateMutation.isPending}
               onClick={() => deactivateTarget && deactivateMutation.mutate(deactivateTarget.id)}
             >
-              Deactivate
-            </Button>
+              {deactivateMutation.isPending ? "Deactivating…" : "Deactivate"}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

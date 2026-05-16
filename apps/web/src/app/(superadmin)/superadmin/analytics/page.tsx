@@ -1,18 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { BarChart3, CreditCard, ShoppingBag, TrendingUp } from "lucide-react";
-import {
-  LineChart, Line, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { get } from "@/lib/api";
-import { formatNPR } from "@/lib/utils";
-import { PageHeader } from "../../../../components/shared/page-header";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { BarChart3, CreditCard, RefreshCw, ShoppingBag, TrendingUp } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { toast } from "sonner";
+import { get, post } from "@/lib/api";
+import { fmtRs } from "@/components/nk/primitives";
+
+const G = "#16a34a";
 
 interface PlatformSummary {
   totalTenants: number;
@@ -23,14 +19,7 @@ interface PlatformSummary {
   activeSubscriptions: number;
   monthlyRecurringRevenue: number;
 }
-
-interface TopTenant {
-  id?: string;
-  name?: string;
-  slug?: string;
-  orderCount: number;
-}
-
+interface TopTenant { id?: string; name?: string; slug?: string; orderCount: number }
 interface PlatformAnalyticsData {
   summary: PlatformSummary;
   topTenants: TopTenant[];
@@ -38,10 +27,22 @@ interface PlatformAnalyticsData {
 }
 
 const PERIODS = [
-  { label: "7 days", value: "7d" },
+  { label: "7 days",  value: "7d" },
   { label: "30 days", value: "30d" },
   { label: "90 days", value: "90d" },
 ];
+
+function KPI({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
+  return (
+    <div className="nk-card" style={{ padding: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div className="nk-eyebrow">{label}</div>
+        <Icon size={14} color="var(--nk-muted)" />
+      </div>
+      <div className="nk-tnum" style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.022em" }}>{value}</div>
+    </div>
+  );
+}
 
 export default function PlatformAnalyticsPage() {
   const [period, setPeriod] = useState("30d");
@@ -51,157 +52,176 @@ export default function PlatformAnalyticsPage() {
     queryFn: () => get<PlatformAnalyticsData>(`/analytics/platform?period=${period}`),
   });
 
-  const summary = data?.summary;
-  const topTenants = data?.topTenants ?? [];
-  const breakdown = data?.subscriptionBreakdown;
+  const snapshotMutation = useMutation({
+    mutationFn: () => post("/analytics/snapshot", {}),
+    onSuccess: () => toast.success("Snapshot triggered — data will update shortly"),
+    onError:   (e: any) => toast.error(e?.response?.data?.message ?? "Snapshot failed"),
+  });
 
-  const subscriptionChartData = breakdown
-    ? [
-        { name: "Basic", count: breakdown.basic },
-        { name: "Pro", count: breakdown.pro },
-      ]
-    : [];
+  const summary    = data?.summary;
+  const topTenants = data?.topTenants ?? [];
+  const breakdown  = data?.subscriptionBreakdown ?? { basic: 0, pro: 0 };
+
+  const barData = [
+    { name: "Basic", count: breakdown.basic, fill: "var(--nk-accent)" },
+    { name: "Pro",   count: breakdown.pro,   fill: G },
+  ];
+
+  const stats = [
+    { label: "Total Revenue · " + period, value: isLoading ? "—" : fmtRs(summary?.totalRevenue ?? 0),            icon: TrendingUp },
+    { label: "Total Orders · " + period,  value: isLoading ? "—" : String(summary?.totalOrders ?? 0),            icon: ShoppingBag },
+    { label: "Active Sellers",            value: isLoading ? "—" : String(summary?.activeTenants ?? 0),          icon: BarChart3 },
+    { label: "Monthly Recurring Revenue", value: isLoading ? "—" : fmtRs(summary?.monthlyRecurringRevenue ?? 0), icon: CreditCard },
+  ];
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader
-        title="Platform Analytics"
-        action={
-          <div className="flex gap-1">
+    <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em", margin: 0 }}>Platform Analytics</h1>
+          <div style={{ fontSize: 12.5, color: "var(--nk-muted)", marginTop: 3 }}>Platform-wide metrics</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Period selector */}
+          <div style={{ display: "flex", gap: 2, padding: 3, background: "var(--nk-bg-2)", borderRadius: 7, border: "1px solid var(--nk-border)" }}>
             {PERIODS.map((p) => (
               <button
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  period === p.value
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {p.label}
-              </button>
+                className="nk-btn"
+                style={{
+                  height: 26, fontSize: 12, padding: "0 10px",
+                  background: period === p.value ? "var(--nk-surface)" : "transparent",
+                  color: period === p.value ? "var(--nk-fg)" : "var(--nk-muted)",
+                  boxShadow: period === p.value ? "var(--nk-shadow-sm)" : "none",
+                }}
+              >{p.label}</button>
             ))}
           </div>
-        }
-      />
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        {[
-          { title: "Total Revenue", value: isLoading ? null : formatNPR(summary?.totalRevenue ?? 0), icon: TrendingUp },
-          { title: "Total Orders", value: isLoading ? null : String(summary?.totalOrders ?? 0), icon: ShoppingBag },
-          { title: "Active Sellers", value: isLoading ? null : String(summary?.activeTenants ?? 0), icon: BarChart3 },
-          { title: "Monthly Recurring Revenue", value: isLoading ? null : formatNPR(summary?.monthlyRecurringRevenue ?? 0), icon: CreditCard },
-        ].map(({ title, value, icon: Icon }) => (
-          <Card key={title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-              <Icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {value === null ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <p className="text-2xl font-bold">{value}</p>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+          {/* Snapshot trigger */}
+          <button
+            className="nk-btn"
+            style={{ display: "flex", alignItems: "center", gap: 6, height: 32, fontSize: 12.5, padding: "0 14px", border: "1px solid var(--nk-border)" }}
+            disabled={snapshotMutation.isPending}
+            onClick={() => snapshotMutation.mutate()}
+            title="Manually record analytics snapshot for all tenants"
+          >
+            <RefreshCw size={13} style={{ animation: snapshotMutation.isPending ? "spin 1s linear infinite" : undefined }} />
+            {snapshotMutation.isPending ? "Running…" : "Trigger Snapshot"}
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Sellers table */}
-        <Card>
-          <CardHeader><CardTitle className="text-base">Top Sellers by Orders</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="p-4 space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-              </div>
-            ) : topTenants.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No order data yet.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Store</TableHead>
-                    <TableHead className="text-right">Orders</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topTenants.map((t, idx) => (
-                    <TableRow key={t.id ?? idx}>
-                      <TableCell>
-                        <p className="text-sm font-medium">{t.name ?? "Unknown"}</p>
-                        {t.slug && <p className="text-xs font-mono text-muted-foreground">{t.slug}</p>}
-                      </TableCell>
-                      <TableCell className="text-right text-sm font-medium">{t.orderCount}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+      {/* KPI cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+        {stats.map((s) => <KPI key={s.label} {...s} />)}
+      </div>
+
+      {/* Main content row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 18 }}>
+
+        {/* Top sellers */}
+        <div className="nk-card">
+          <div className="nk-card-hd"><h3>Top Sellers by Orders · {period}</h3></div>
+          {isLoading ? (
+            <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ height: 32, background: "var(--nk-bg-2)", borderRadius: 6 }} />)}
+            </div>
+          ) : topTenants.length === 0 ? (
+            <div style={{ padding: "28px 16px", textAlign: "center", fontSize: 13, color: "var(--nk-muted)" }}>No order data yet.</div>
+          ) : (
+            <table className="nk-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 28 }}>#</th>
+                  <th>Store</th>
+                  <th className="nk-num">Orders</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topTenants.map((t, idx) => (
+                  <tr key={t.id ?? idx}>
+                    <td style={{ fontSize: 11.5, color: "var(--nk-muted)" }}>{idx + 1}</td>
+                    <td>
+                      <div style={{ fontSize: 12.5, fontWeight: 500 }}>{t.name ?? "Unknown"}</div>
+                      {t.slug && <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--nk-muted)" }}>{t.slug}</div>}
+                    </td>
+                    <td className="nk-num nk-tnum" style={{ fontSize: 13, fontWeight: 600 }}>{t.orderCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
 
         {/* Subscription breakdown chart */}
-        <Card>
-          <CardHeader><CardTitle className="text-base">Subscription Breakdown</CardTitle></CardHeader>
-          <CardContent>
+        <div className="nk-card">
+          <div className="nk-card-hd"><h3>Subscription Breakdown</h3></div>
+          <div style={{ padding: "0 16px 16px" }}>
             {isLoading ? (
-              <Skeleton className="h-40 w-full" />
+              <div style={{ height: 160, background: "var(--nk-bg-2)", borderRadius: 6 }} />
             ) : (
               <>
                 <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={subscriptionChartData} barSize={48}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <BarChart data={barData} barSize={52}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--nk-border)" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--nk-muted)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 12, fill: "var(--nk-muted)" }} allowDecimals={false} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ background: "var(--nk-surface)", border: "1px solid var(--nk-border)", borderRadius: 8, fontSize: 12 }}
+                      cursor={{ fill: "var(--nk-bg-2)" }}
+                    />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="var(--nk-accent)" />
                   </BarChart>
                 </ResponsiveContainer>
-                <div className="flex justify-around mt-3 text-sm">
-                  <div className="text-center">
-                    <p className="font-semibold text-lg">{breakdown?.basic ?? 0}</p>
-                    <p className="text-muted-foreground text-xs">Basic</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-lg">{breakdown?.pro ?? 0}</p>
-                    <p className="text-muted-foreground text-xs">Pro</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-lg">{summary?.activeSubscriptions ?? 0}</p>
-                    <p className="text-muted-foreground text-xs">Total Active</p>
-                  </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
+                  {[
+                    { label: "Basic",   value: breakdown.basic,   color: "var(--nk-accent)" },
+                    { label: "Pro",     value: breakdown.pro,     color: G },
+                    { label: "Active",  value: summary?.activeSubscriptions ?? 0, color: "var(--nk-fg)" },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} style={{ textAlign: "center", padding: "8px 0" }}>
+                      <div className="nk-tnum" style={{ fontSize: 20, fontWeight: 700, color }}>{value}</div>
+                      <div style={{ fontSize: 11, color: "var(--nk-muted)", marginTop: 2 }}>{label}</div>
+                    </div>
+                  ))}
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Platform stats summary */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Platform Stats</CardTitle></CardHeader>
-        <CardContent className="space-y-3 pt-2">
+      <div className="nk-card">
+        <div className="nk-card-hd"><h3>Platform Stats</h3></div>
+        <div style={{ padding: "4px 0 8px" }}>
           {isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)
+            <div style={{ padding: "8px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {[1, 2, 3, 4].map(i => <div key={i} style={{ height: 28, background: "var(--nk-bg-2)", borderRadius: 6 }} />)}
+            </div>
           ) : (
             [
               { label: "Total Registered Sellers", value: String(summary?.totalTenants ?? 0) },
-              { label: "Active Sellers", value: String(summary?.activeTenants ?? 0) },
-              { label: "Pending Approval", value: String(summary?.pendingApproval ?? 0) },
-              { label: "Active Subscriptions", value: String(summary?.activeSubscriptions ?? 0) },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex justify-between items-center text-sm border-b last:border-0 pb-2 last:pb-0">
-                <span className="text-muted-foreground">{label}</span>
-                <span className="font-semibold">{value}</span>
+              { label: "Active Sellers",            value: String(summary?.activeTenants ?? 0) },
+              { label: "Pending Approval",          value: String(summary?.pendingApproval ?? 0) },
+              { label: "Active Subscriptions",      value: String(summary?.activeSubscriptions ?? 0) },
+            ].map(({ label, value }, i, arr) => (
+              <div key={label} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "10px 18px",
+                borderBottom: i < arr.length - 1 ? "1px solid var(--nk-border)" : undefined,
+              }}>
+                <span style={{ fontSize: 13, color: "var(--nk-muted)" }}>{label}</span>
+                <span className="nk-tnum" style={{ fontSize: 13, fontWeight: 600 }}>{value}</span>
               </div>
             ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

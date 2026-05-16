@@ -2,21 +2,16 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, CreditCard, Pencil } from "lucide-react";
+import { CheckCircle2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { get, patch } from "@/lib/api";
-import { formatNPR } from "@/lib/utils";
+import { fmtRs } from "@/components/nk/primitives";
 import { Plan } from "../../../../types";
-import { PageHeader } from "../../../../components/shared/page-header";
-import { EmptyState } from "../../../../components/shared/empty-state";
+
+const G = "#16a34a";
 
 interface PlanWithStats extends Plan {
   isActive?: boolean;
@@ -24,11 +19,7 @@ interface PlanWithStats extends Plan {
 }
 
 interface EditForm {
-  name: string;
-  price: string;
-  maxProducts: string;
-  features: string;
-  isActive: boolean;
+  name: string; price: string; maxProducts: string; features: string; isActive: boolean;
 }
 
 export default function PlansPage() {
@@ -44,12 +35,8 @@ export default function PlansPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Plan> & { isActive?: boolean } }) =>
       patch(`/plans/${id}`, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["superadmin", "plans"] });
-      toast.success("Plan updated");
-      setEditingPlan(null);
-    },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update plan"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["superadmin", "plans"] }); toast.success("Plan updated"); setEditingPlan(null); },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? "Failed to update plan"),
   });
 
   function openEdit(plan: PlanWithStats) {
@@ -65,116 +52,132 @@ export default function PlansPage() {
 
   function handleSave() {
     if (!editingPlan) return;
-    const features = form.features.split("\n").map((f) => f.trim()).filter(Boolean);
     updateMutation.mutate({
       id: editingPlan.id,
       data: {
         name: form.name,
         price: form.price,
         maxProducts: form.maxProducts ? Number(form.maxProducts) : null,
-        features,
+        features: form.features.split("\n").map(f => f.trim()).filter(Boolean),
         isActive: form.isActive,
       } as Partial<Plan> & { isActive?: boolean },
     });
   }
 
   return (
-    <div className="p-6">
-      <PageHeader title="Subscription Plans" />
+    <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 18 }}>
+      {/* Header */}
+      <div>
+        <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.018em", margin: 0 }}>Subscription Plans</h1>
+        <div style={{ fontSize: 12.5, color: "var(--nk-muted)", marginTop: 3 }}>Manage plan pricing and features</div>
+      </div>
 
+      {/* Plan cards */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-72 w-full" />)}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+          {[1, 2].map(i => <div key={i} style={{ height: 280, background: "var(--nk-surface)", borderRadius: 10, border: "1px solid var(--nk-border)" }} />)}
         </div>
       ) : !plans?.length ? (
-        <EmptyState icon={CreditCard} title="No plans found" description="Plans will appear here." />
+        <div style={{ textAlign: "center", padding: "48px 16px", color: "var(--nk-muted)", fontSize: 13 }}>No plans found.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {plans.map((plan) => (
-            <Card key={plan.id} className="relative">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg">{plan.name}</CardTitle>
-                    <Badge variant={plan.tier === "PRO" ? "default" : "secondary"}>{plan.tier}</Badge>
-                  </div>
-                  <Button size="sm" variant="ghost" onClick={() => openEdit(plan)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-2xl font-bold mt-1">{formatNPR(Number(plan.price))}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1.5">
-                    Max Products: {plan.maxProducts ?? "Unlimited"}
-                  </p>
-                  <Separator />
-                </div>
-                <div className="space-y-1.5">
-                  {(plan.features as string[]).map((feature) => (
-                    <div key={feature} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                      <span>{feature}</span>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+          {plans.map((plan) => {
+            const isPro = plan.tier === "PRO";
+            return (
+              <div key={plan.id} className="nk-card" style={{ padding: 0, overflow: "hidden" }}>
+                {/* Card header */}
+                <div style={{
+                  padding: "18px 20px", background: isPro ? `linear-gradient(135deg, ${G}18, ${G}08)` : "var(--nk-bg)",
+                  borderBottom: "1px solid var(--nk-border)",
+                  display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+                }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.02em" }}>{plan.name}</span>
+                      <span style={{
+                        fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+                        padding: "2px 7px", borderRadius: 999,
+                        background: isPro ? `${G}18` : "var(--nk-bg-2)",
+                        color: isPro ? G : "var(--nk-muted)",
+                      }}>{plan.tier}</span>
                     </div>
-                  ))}
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                      <span className="nk-tnum" style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.03em", color: isPro ? G : "var(--nk-fg)" }}>
+                        {fmtRs(Number(plan.price))}
+                      </span>
+                      <span style={{ fontSize: 12, color: "var(--nk-muted)" }}>/month</span>
+                    </div>
+                  </div>
+                  <button
+                    className="nk-btn"
+                    style={{ padding: "6px 8px", border: "1px solid var(--nk-border)", display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
+                    onClick={() => openEdit(plan)}
+                  >
+                    <Pencil size={12} /> Edit
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                {/* Body */}
+                <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div style={{ fontSize: 12.5, color: "var(--nk-muted)" }}>
+                    Max products: <strong style={{ color: "var(--nk-fg)" }}>{plan.maxProducts ?? "Unlimited"}</strong>
+                    {plan._count?.subscriptions !== undefined && (
+                      <> · <strong style={{ color: "var(--nk-fg)" }}>{plan._count.subscriptions}</strong> subscribers</>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {(plan.features as string[]).map((feature) => (
+                      <div key={feature} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13 }}>
+                        <CheckCircle2 size={14} color={isPro ? G : "var(--nk-success)"} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Edit plan sheet */}
+      {/* Edit sheet */}
       <Sheet open={!!editingPlan} onOpenChange={(open) => { if (!open) setEditingPlan(null); }}>
         <SheetContent className="w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>Edit Plan — {editingPlan?.name}</SheetTitle>
-          </SheetHeader>
+          <SheetHeader><SheetTitle>Edit Plan — {editingPlan?.name}</SheetTitle></SheetHeader>
           <div className="space-y-4 mt-6">
             <div className="space-y-1.5">
               <Label>Name</Label>
-              <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+              <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label>Price (NPR/month)</Label>
-              <Input
-                type="number"
-                value={form.price}
-                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-              />
+              <Input type="number" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label>Max Products (leave blank for unlimited)</Label>
-              <Input
-                type="number"
-                value={form.maxProducts}
-                onChange={(e) => setForm((f) => ({ ...f, maxProducts: e.target.value }))}
-                placeholder="Unlimited"
-              />
+              <Input type="number" value={form.maxProducts} onChange={(e) => setForm(f => ({ ...f, maxProducts: e.target.value }))} placeholder="Unlimited" />
             </div>
             <div className="space-y-1.5">
               <Label>Features (one per line)</Label>
               <textarea
                 className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
                 value={form.features}
-                onChange={(e) => setForm((f) => ({ ...f, features: e.target.value }))}
-                placeholder="Order management&#10;Inventory tracking&#10;Analytics"
+                onChange={(e) => setForm(f => ({ ...f, features: e.target.value }))}
+                placeholder="Order management&#10;Inventory tracking"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={form.isActive}
-                onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                className="h-4 w-4"
-              />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" id="isActive" checked={form.isActive} onChange={(e) => setForm(f => ({ ...f, isActive: e.target.checked }))} style={{ width: 16, height: 16 }} />
               <Label htmlFor="isActive">Active (visible to sellers)</Label>
             </div>
-            <Button className="w-full" onClick={handleSave} disabled={updateMutation.isPending}>
-              Save Changes
-            </Button>
+            <button
+              className="nk-btn nk-btn-primary"
+              style={{ width: "100%", background: G, borderColor: G, justifyContent: "center" }}
+              onClick={handleSave}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? "Saving…" : "Save Changes"}
+            </button>
           </div>
         </SheetContent>
       </Sheet>
