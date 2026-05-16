@@ -34,7 +34,7 @@ export function WholesalePricing({ tiers, currentQty, basePrice }: WholesalePric
   if (activeTier) {
     const saving = (basePrice - activeTier.price) * currentQty;
     return (
-      <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 transition-colors duration-150">
+      <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 transition-colors duration-[120ms]">
         <div className="flex items-center gap-1.5 text-green-700 text-sm font-medium">
           <span className="text-green-600">✓</span>
           <span>Bulk price unlocked — saving {formatPrice(saving)}</span>
@@ -58,14 +58,14 @@ export function WholesalePricing({ tiers, currentQty, basePrice }: WholesalePric
     const remaining = threshold - currentQty;
     const barPct = Math.round(pct * 100);
     return (
-      <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 transition-colors duration-150">
+      <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 transition-colors duration-[120ms]">
         <p className="text-sm text-blue-800 font-medium">
           {remaining} more to unlock {formatPrice(nextTier!.price)} / pc
         </p>
         <div className="mt-2 flex items-center gap-2">
           <div className="flex-1 h-1.5 bg-blue-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-600 rounded-full transition-colors duration-150"
+              className="h-full bg-blue-600 rounded-full transition-colors duration-[120ms]"
               style={{ width: `${barPct}%` }}
             />
           </div>
@@ -79,7 +79,7 @@ export function WholesalePricing({ tiers, currentQty, basePrice }: WholesalePric
 
   // State: below threshold, not approaching
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 transition-colors duration-150">
+    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 transition-colors duration-[120ms]">
       <p className="text-sm text-gray-600">
         <span className="text-gray-400 mr-1">↓</span>
         Order {threshold}+ pcs and pay {formatPrice(nextTier!.price)} each.

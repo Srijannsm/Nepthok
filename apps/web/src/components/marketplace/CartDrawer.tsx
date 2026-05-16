@@ -97,42 +97,51 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
             </div>
           ) : (
             itemList.map(([key, item]) => (
-              <div key={key} className="flex gap-3 items-start">
-                {/* Image */}
-                <div className="relative w-16 h-16 bg-gray-100 rounded shrink-0 overflow-hidden">
-                  {item.imageUrl ? (
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.productName}
-                      fill
-                      className="object-cover"
-                      sizes="64px"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-xl">
-                      ▦
-                    </div>
-                  )}
-                </div>
+              <div key={key} className="flex flex-col gap-1.5">
+                <div className="flex gap-3 items-start">
+                  {/* Image */}
+                  <div className="relative w-16 h-16 bg-gray-100 rounded shrink-0 overflow-hidden">
+                    {item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.productName}
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-xl">
+                        ▦
+                      </div>
+                    )}
+                  </div>
 
-                {/* Details */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500 truncate">{item.sellerName}</p>
-                  <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">
-                    {item.productName}
-                  </p>
-                  <div className="flex items-center justify-between mt-1.5 gap-2">
-                    <QuantityStepper
-                      value={item.qty}
-                      onChange={(n) => updateQty(key, n)}
-                      min={1}
-                      size="sm"
-                    />
-                    <span className="font-mono text-sm font-semibold text-gray-900 shrink-0">
-                      {formatPrice(item.price * item.qty)}
-                    </span>
+                  {/* Details */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500 truncate">{item.sellerName}</p>
+                    <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">
+                      {item.productName}
+                    </p>
+                    <div className="flex items-center justify-between mt-1.5 gap-2">
+                      <QuantityStepper
+                        value={item.qty}
+                        onChange={(n) => updateQty(key, n)}
+                        min={1}
+                        size="sm"
+                      />
+                      <span className="font-mono text-sm font-semibold text-gray-900 shrink-0">
+                        {formatPrice(item.price * item.qty)}
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {/* Wholesale upsell hint */}
+                {item.qty > 0 && item.qty < 10 && (
+                  <p className="text-xs text-gray-400 pl-[76px]">
+                    ↓ Order 10+ to unlock bulk pricing
+                  </p>
+                )}
               </div>
             ))
           )}
