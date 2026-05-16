@@ -3,34 +3,19 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import {
-  BarChart3, CreditCard, LayoutDashboard,
-  LogOut, RefreshCw, ShoppingBag, Store, Tag,
-} from "lucide-react";
 import { useAuthStore } from "../../../store/auth.store";
 import { useQuery } from "@tanstack/react-query";
 import { get } from "@/lib/api";
+import { Icon, Logo, Avatar, Badge } from "@/components/nk/primitives";
 
-const SB = {
-  bg:            "#0f1419",
-  border:        "rgba(255,255,255,0.07)",
-  muted:         "rgba(255,255,255,0.40)",
-  normal:        "rgba(255,255,255,0.68)",
-  activeText:    "#ffffff",
-  activeBg:      "rgba(34,197,94,0.13)",
-  activeBorder:  "#22c55e",
-  brandGreen:    "#16a34a",
-  labelGreen:    "#4ade80",
-};
-
-const NAV = [
-  { href: "/superadmin",               label: "Dashboard",     icon: LayoutDashboard, exact: true },
-  { href: "/superadmin/sellers",       label: "Sellers",       icon: Store,           badge: "pending" },
-  { href: "/superadmin/plans",         label: "Plans",         icon: CreditCard },
-  { href: "/superadmin/subscriptions", label: "Subscriptions", icon: RefreshCw },
-  { href: "/superadmin/categories",    label: "Categories",    icon: Tag },
-  { href: "/superadmin/orders",        label: "Orders",        icon: ShoppingBag },
-  { href: "/superadmin/analytics",     label: "Analytics",     icon: BarChart3 },
+const NAV_ITEMS = [
+  { id: "superadmin",               href: "/superadmin",               label: "Dashboard",     icon: "home",    exact: true },
+  { id: "sellers",                  href: "/superadmin/sellers",       label: "Sellers",       icon: "store",   badge: "pending" },
+  { id: "plans",                    href: "/superadmin/plans",         label: "Plans",         icon: "card" },
+  { id: "subscriptions",            href: "/superadmin/subscriptions", label: "Subscriptions", icon: "refresh" },
+  { id: "categories",               href: "/superadmin/categories",    label: "Categories",    icon: "tag" },
+  { id: "orders",                   href: "/superadmin/orders",        label: "Orders",        icon: "cart" },
+  { id: "analytics",                href: "/superadmin/analytics",     label: "Analytics",     icon: "chart" },
 ];
 
 interface PlatformData { summary: { pendingApproval: number } }
@@ -56,44 +41,44 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 
   if (!hydrated || !isAuthenticated || !user) return null;
 
+  const activeId = (() => {
+    for (const item of [...NAV_ITEMS].reverse()) {
+      if (item.exact ? pathname === item.href : pathname.startsWith(item.href)) return item.id;
+    }
+    return "superadmin";
+  })();
+
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--nk-bg)" }}>
-      {/* ── Dark sidebar ── */}
-      <aside style={{
-        width: 220, flexShrink: 0, display: "flex", flexDirection: "column",
-        background: SB.bg, borderRight: `1px solid ${SB.border}`,
-      }}>
-        {/* Brand */}
-        <div style={{ padding: "18px 16px 16px", borderBottom: `1px solid ${SB.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 9, background: SB.brandGreen, flexShrink: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em",
-            boxShadow: "0 0 0 1px rgba(255,255,255,0.12) inset",
-          }}>N</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.022em", color: "#fff", lineHeight: 1.1 }}>Nepthok</div>
-            <div style={{ fontSize: 9, fontWeight: 700, color: SB.labelGreen, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 3 }}>Super Admin</div>
+    <div className="nk-root nk-light" style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      {/* Sidebar */}
+      <aside style={{ width: 232, flexShrink: 0, borderRight: "1px solid var(--nk-border)", background: "var(--nk-surface)", display: "flex", flexDirection: "column" }}>
+        {/* Logo / brand */}
+        <div style={{ padding: "14px 12px", borderBottom: "1px solid var(--nk-border)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 8px", borderRadius: "var(--nk-r-md)" }}>
+            <Logo showWord={false} size="sm" />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: "-0.012em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                Nepthok
+              </div>
+              <div className="nk-mono" style={{ fontSize: 10.5, color: "var(--nk-muted)" }}>super admin</div>
+            </div>
           </div>
         </div>
 
-        {/* Nav */}
-        <nav style={{ flex: 1, padding: "10px 8px", display: "flex", flexDirection: "column", gap: 1, overflowY: "auto" }}>
-          {NAV.map(({ href, label, icon: Icon, exact, badge }) => {
-            const active = exact ? pathname === href : (pathname === href || pathname.startsWith(href + "/"));
-            const hasBadge = badge === "pending" && pendingCount > 0;
+        {/* Main nav */}
+        <nav style={{ padding: "6px 10px", display: "flex", flexDirection: "column", gap: 1, flex: 1 }}>
+          <div className="nk-eyebrow" style={{ padding: "8px 9px 6px" }}>Platform</div>
+          {NAV_ITEMS.map((item) => {
+            const active = activeId === item.id;
+            const hasBadge = item.badge === "pending" && pendingCount > 0;
             return (
-              <Link key={href} href={href} style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "7px 10px 7px 9px", borderRadius: 6,
-                fontSize: 13, fontWeight: active ? 600 : 400,
-                color: active ? SB.activeText : SB.normal,
-                background: active ? SB.activeBg : "transparent",
-                borderLeft: `2px solid ${active ? SB.activeBorder : "transparent"}`,
-                textDecoration: "none", transition: "background 0.1s, color 0.1s",
-              }}>
-                <Icon size={14} strokeWidth={active ? 2.2 : 1.8} style={{ flexShrink: 0 }} />
-                <span style={{ flex: 1 }}>{label}</span>
+              <Link
+                key={item.id}
+                href={item.href}
+                className={"nk-nav-link" + (active ? " is-active" : "")}
+              >
+                <Icon name={item.icon} size={15} color={active ? "var(--nk-fg)" : "var(--nk-muted)"} />
+                <span style={{ flex: 1 }}>{item.label}</span>
                 {hasBadge && (
                   <span style={{
                     fontSize: 10, fontWeight: 700, lineHeight: 1,
@@ -106,30 +91,45 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           })}
         </nav>
 
-        {/* Footer */}
-        <div style={{ padding: "10px 14px 14px", borderTop: `1px solid ${SB.border}` }}>
-          <div style={{ fontSize: 11.5, color: SB.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 8 }}>
-            {user.email}
-          </div>
-          <button
+        {/* Bottom: user */}
+        <div style={{ padding: "6px 10px 10px", borderTop: "1px solid var(--nk-border)", display: "flex", flexDirection: "column", gap: 1 }}>
+          <div className="nk-eyebrow" style={{ padding: "10px 9px 6px" }}>Account</div>
+          <div
+            className="nk-nav-link"
+            style={{ cursor: "default" }}
             onClick={logout}
-            style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "5px 6px",
-              background: "transparent", border: "none", cursor: "pointer", borderRadius: 5,
-              fontSize: 12, color: SB.muted, width: "100%", textAlign: "left",
-              transition: "color 0.1s",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#f87171")}
-            onMouseLeave={e => (e.currentTarget.style.color = SB.muted)}
           >
-            <LogOut size={13} /> Sign out
-          </button>
+            <Icon name="logout" size={15} color="var(--nk-muted)" />
+            <span>Sign out</span>
+          </div>
+
+          {/* User row */}
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 9, padding: "6px 4px 0" }}>
+            <Avatar initials={user.name?.split(" ").map((p: string) => p[0]).join("").slice(0, 2)} size={26} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.name}</div>
+              <div style={{ fontSize: 10.5, color: "var(--nk-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</div>
+            </div>
+          </div>
         </div>
       </aside>
 
-      {/* Main content */}
-      <main style={{ flex: 1, overflowY: "auto", background: "var(--nk-bg)" }}>
-        {children}
+      {/* Content */}
+      <main className="nk-scroll" style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", minWidth: 0 }}>
+        {/* Topbar */}
+        <header style={{ height: 56, padding: "0 22px", borderBottom: "1px solid var(--nk-border)", background: "var(--nk-surface)", display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+          <div style={{ flex: 1 }} />
+          <button type="button" className="nk-btn nk-btn-ghost nk-btn-icon">
+            <Icon name="help" size={15} color="var(--nk-muted)" />
+          </button>
+          <button type="button" className="nk-btn nk-btn-ghost nk-btn-icon" style={{ position: "relative" }}>
+            <Icon name="bell" size={15} color="var(--nk-muted)" />
+          </button>
+          <Avatar initials={user.name?.split(" ").map((p: string) => p[0]).join("").slice(0, 2)} size={28} />
+        </header>
+        <div style={{ flex: 1 }}>
+          {children}
+        </div>
       </main>
     </div>
   );

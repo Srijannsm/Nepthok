@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { get, patch } from "@/lib/api";
+import { Icon } from "@/components/nk/primitives";
 import { fmtRs } from "@/components/nk/primitives";
 import { Plan } from "../../../../types";
 
@@ -113,7 +113,7 @@ export default function PlansPage() {
                     style={{ padding: "6px 8px", border: "1px solid var(--nk-border)", display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
                     onClick={() => openEdit(plan)}
                   >
-                    <Pencil size={12} /> Edit
+                    <Icon name="settings" size={12} /> Edit
                   </button>
                 </div>
 
@@ -128,7 +128,7 @@ export default function PlansPage() {
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {(plan.features as string[]).map((feature) => (
                       <div key={feature} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13 }}>
-                        <CheckCircle2 size={14} color={isPro ? G : "var(--nk-success)"} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <Icon name="check" size={14} color={isPro ? G : "var(--nk-success)"} />
                         <span>{feature}</span>
                       </div>
                     ))}

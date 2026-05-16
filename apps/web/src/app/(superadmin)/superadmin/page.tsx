@@ -2,10 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CheckCircle2, Store } from "lucide-react";
 import { toast } from "sonner";
 import { get, patch } from "@/lib/api";
-import { fmtRs } from "@/components/nk/primitives";
+import { fmtRs, Icon } from "@/components/nk/primitives";
 import { formatDate } from "@/lib/utils";
 
 const G = "#16a34a";
@@ -93,12 +92,12 @@ export default function SuperAdminDashboard() {
           background: "rgba(234,179,8,0.07)", border: "1px solid rgba(234,179,8,0.28)",
           borderLeft: "3px solid #eab308", borderRadius: 8,
         }}>
-          <AlertTriangle size={15} color="#ca8a04" style={{ flexShrink: 0 }} />
+          <Icon name="alert" size={15} color="#ca8a04" />
           <span style={{ fontSize: 13, color: "var(--nk-fg)", flex: 1 }}>
             <strong>{pendingCount}</strong> seller{pendingCount !== 1 ? "s" : ""} awaiting approval
           </span>
           <Link href="/superadmin/sellers" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "#ca8a04", textDecoration: "none" }}>
-            Review all <ArrowRight size={12} />
+            Review all <Icon name="arrowRight" size={12} color="#ca8a04" />
           </Link>
         </div>
       )}
@@ -127,7 +126,7 @@ export default function SuperAdminDashboard() {
             </div>
           ) : pending.length === 0 ? (
             <div style={{ padding: "28px 16px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-              <CheckCircle2 size={22} color={G} />
+              <Icon name="check" size={22} color={G} />
               <span style={{ fontSize: 13, color: "var(--nk-muted)" }}>No pending approvals — all clear.</span>
             </div>
           ) : (
@@ -218,7 +217,7 @@ export default function SuperAdminDashboard() {
           </div>
         ) : recent.length === 0 ? (
           <div style={{ padding: "24px 16px", textAlign: "center", fontSize: 13, color: "var(--nk-muted)" }}>
-            <Store size={22} style={{ marginBottom: 8, opacity: 0.4, display: "block", margin: "0 auto 8px" }} />
+            <span style={{ display: "flex", justifyContent: "center", marginBottom: 8, opacity: 0.4 }}><Icon name="store" size={22} /></span>
             No stores yet.
           </div>
         ) : (

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -10,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { get, post, patch, del } from "@/lib/api";
+import { Icon } from "@/components/nk/primitives";
 import { Category } from "../../../../types";
 
 const G = "#16a34a";
@@ -86,7 +86,7 @@ export default function CategoriesPage() {
           <div style={{ fontSize: 12.5, color: "var(--nk-muted)", marginTop: 3 }}>Global product categories for all sellers</div>
         </div>
         <button className="nk-btn nk-btn-primary" style={{ background: G, borderColor: G, display: "flex", alignItems: "center", gap: 6 }} onClick={openCreate}>
-          <Plus size={14} /> Add Category
+          <Icon name="plus" size={14} /> Add Category
         </button>
       </div>
 

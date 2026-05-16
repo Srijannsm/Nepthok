@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { get } from "@/lib/api";
+import { Icon } from "@/components/nk/primitives";
 import { fmtRs } from "@/components/nk/primitives";
 import { formatDate } from "@/lib/utils";
 import { Order, PaginatedResponse } from "../../../../types";
@@ -61,7 +61,7 @@ export default function AdminOrdersPage() {
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ position: "relative" }}>
-          <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--nk-muted)", pointerEvents: "none" }} />
+          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", display: "flex" }}><Icon name="search" size={13} color="var(--nk-muted)" /></span>
           <input
             className={inputCls}
             style={{ paddingLeft: 30, width: 220 }}

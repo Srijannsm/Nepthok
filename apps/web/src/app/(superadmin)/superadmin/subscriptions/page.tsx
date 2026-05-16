@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -10,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { get, post } from "@/lib/api";
+import { Icon } from "@/components/nk/primitives";
 import { fmtRs } from "@/components/nk/primitives";
 import { formatDate } from "@/lib/utils";
 import { Plan, PaginatedResponse } from "../../../../types";
@@ -167,7 +167,7 @@ export default function SubscriptionsPage() {
             ) : subs.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ textAlign: "center", padding: "36px 16px" }}>
-                  <RefreshCw size={22} style={{ margin: "0 auto 8px", display: "block", opacity: 0.3 }} />
+                  <span style={{ display: "flex", justifyContent: "center", marginBottom: 8, opacity: 0.3 }}><Icon name="refresh" size={22} /></span>
                   <div style={{ fontSize: 13, color: "var(--nk-muted)" }}>No subscriptions found.</div>
                 </td>
               </tr>

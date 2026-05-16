@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { get, patch, post } from "@/lib/api";
+import { Icon } from "@/components/nk/primitives";
 import { formatDate } from "@/lib/utils";
 import { Tenant, PaginatedResponse } from "../../../../types";
 import { SellerDetail } from "../../../../components/superadmin/seller-detail";
@@ -147,7 +147,7 @@ export default function SellersPage() {
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ position: "relative" }}>
-          <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--nk-muted)", pointerEvents: "none" }} />
+          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", display: "flex" }}><Icon name="search" size={13} color="var(--nk-muted)" /></span>
           <input
             className={inputCls}
             style={{ paddingLeft: 30, width: 220 }}

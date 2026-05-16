@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { BarChart3, CreditCard, RefreshCw, ShoppingBag, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 import { get, post } from "@/lib/api";
-import { fmtRs } from "@/components/nk/primitives";
+import { fmtRs, Icon } from "@/components/nk/primitives";
 
 const G = "#16a34a";
 
@@ -32,12 +31,12 @@ const PERIODS = [
   { label: "90 days", value: "90d" },
 ];
 
-function KPI({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
+function KPI({ label, value, icon }: { label: string; value: string; icon: string }) {
   return (
     <div className="nk-card" style={{ padding: 18 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <div className="nk-eyebrow">{label}</div>
-        <Icon size={14} color="var(--nk-muted)" />
+        <Icon name={icon} size={14} color="var(--nk-muted)" />
       </div>
       <div className="nk-tnum" style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.022em" }}>{value}</div>
     </div>
@@ -68,10 +67,10 @@ export default function PlatformAnalyticsPage() {
   ];
 
   const stats = [
-    { label: "Total Revenue · " + period, value: isLoading ? "—" : fmtRs(summary?.totalRevenue ?? 0),            icon: TrendingUp },
-    { label: "Total Orders · " + period,  value: isLoading ? "—" : String(summary?.totalOrders ?? 0),            icon: ShoppingBag },
-    { label: "Active Sellers",            value: isLoading ? "—" : String(summary?.activeTenants ?? 0),          icon: BarChart3 },
-    { label: "Monthly Recurring Revenue", value: isLoading ? "—" : fmtRs(summary?.monthlyRecurringRevenue ?? 0), icon: CreditCard },
+    { label: "Total Revenue · " + period, value: isLoading ? "—" : fmtRs(summary?.totalRevenue ?? 0),            icon: "arrowUp" },
+    { label: "Total Orders · " + period,  value: isLoading ? "—" : String(summary?.totalOrders ?? 0),            icon: "cart" },
+    { label: "Active Sellers",            value: isLoading ? "—" : String(summary?.activeTenants ?? 0),          icon: "store" },
+    { label: "Monthly Recurring Revenue", value: isLoading ? "—" : fmtRs(summary?.monthlyRecurringRevenue ?? 0), icon: "card" },
   ];
 
   return (
@@ -108,7 +107,7 @@ export default function PlatformAnalyticsPage() {
             onClick={() => snapshotMutation.mutate()}
             title="Manually record analytics snapshot for all tenants"
           >
-            <RefreshCw size={13} style={{ animation: snapshotMutation.isPending ? "spin 1s linear infinite" : undefined }} />
+            <Icon name="refresh" size={13} />
             {snapshotMutation.isPending ? "Running…" : "Trigger Snapshot"}
           </button>
         </div>
