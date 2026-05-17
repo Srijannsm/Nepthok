@@ -9,7 +9,7 @@ import { calculatePrice } from "@nepthok/utils";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { CreateProductDto } from "./dto/create-product.dto";
-import { ProductQueryDto } from "./dto/product-query.dto";
+import { ProductQueryDto, ProductSortOrder } from "./dto/product-query.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { validatePricingTiers } from "./pricing-tiers.validator";
 
@@ -17,6 +17,15 @@ const PRODUCT_BASE = {
   category: { select: { id: true, name: true, slug: true } },
   tenant: { select: { id: true, name: true, slug: true } },
 } as const;
+
+function buildOrderBy(sort?: ProductSortOrder): Prisma.ProductOrderByWithRelationInput {
+  switch (sort) {
+    case ProductSortOrder.PriceAsc:  return { price: "asc" };
+    case ProductSortOrder.PriceDesc: return { price: "desc" };
+    case ProductSortOrder.Popular:   return { orderItems: { _count: "desc" } };
+    default:                         return { createdAt: "desc" };
+  }
+}
 
 function buildPriceFilter(min?: number, max?: number): Prisma.DecimalFilter | undefined {
   if (min === undefined && max === undefined) return undefined;
@@ -145,6 +154,7 @@ export class ProductsService {
 
     const where: Prisma.ProductWhereInput = {
       status: ProductStatus.ACTIVE,
+      ...(query.tenantId && { tenantId: query.tenantId }),
       ...(query.categoryId && { categoryId: query.categoryId }),
       ...(query.search && { name: { contains: query.search, mode: "insensitive" } }),
       ...(query.inStock && { stock: { gt: 0 } }),
@@ -154,7 +164,7 @@ export class ProductsService {
     if (priceFilter) where.price = priceFilter;
 
     const [items, total] = await Promise.all([
-      this.prisma.product.findMany({ where, skip, take: limit, include: PRODUCT_BASE, orderBy: { createdAt: "desc" } }),
+      this.prisma.product.findMany({ where, skip, take: limit, include: PRODUCT_BASE, orderBy: buildOrderBy(query.sort) }),
       this.prisma.product.count({ where }),
     ]);
 

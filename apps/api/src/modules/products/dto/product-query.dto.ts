@@ -10,6 +10,13 @@ import {
 } from "class-validator";
 import { ProductStatus } from "@nepthok/database";
 
+export enum ProductSortOrder {
+  Newest = "newest",
+  PriceAsc = "price_asc",
+  PriceDesc = "price_desc",
+  Popular = "popular",
+}
+
 export class ProductQueryDto {
   @IsOptional()
   @Type(() => Number)
@@ -52,4 +59,12 @@ export class ProductQueryDto {
   @Transform(({ value }: { value: string }) => value === "true")
   @IsBoolean()
   inStock?: boolean;
+
+  @IsOptional()
+  @IsEnum(ProductSortOrder)
+  sort?: ProductSortOrder;
+
+  @IsOptional()
+  @IsString()
+  tenantId?: string;
 }

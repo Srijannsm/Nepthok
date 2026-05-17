@@ -1,12 +1,13 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
 import { TenantMiddleware } from "../../common/middleware/tenant.middleware";
 import { PrismaModule } from "../../prisma/prisma.module";
+import { SellersController } from "./sellers.controller";
 import { TenantsController } from "./tenants.controller";
 import { TenantsService } from "./tenants.service";
 
 @Module({
   imports: [PrismaModule],
-  controllers: [TenantsController],
+  controllers: [TenantsController, SellersController],
   providers: [TenantsService],
   exports: [TenantsService],
 })

@@ -5,7 +5,17 @@
       "PowerShell(New-Item *)",
       "Bash(Get-ChildItem -Path . -Recurse -Filter \".env*\" -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(npx prisma *)"
+      "Bash(npx prisma *)",
+      "Skill(superpowers:executing-plans)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(npm dedupe *)",
+      "Bash(taskkill //F //PID 12324)",
+      "Bash(echo \"PID: $!\")",
+      "Skill(superpowers:writing-plans)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

@@ -29,7 +29,7 @@ api.interceptors.response.use(
 
 // Public API — no auth header, no 401 redirect to /login
 export const publicApi = axios.create({
-  baseURL: BASE + "/v1",
+  baseURL: BASE,
   headers: { "Content-Type": "application/json" },
 });
 

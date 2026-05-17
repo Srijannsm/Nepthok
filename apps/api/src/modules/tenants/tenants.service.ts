@@ -155,6 +155,29 @@ export class TenantsService {
     });
   }
 
+  async findPublicSellers(page: number, limit: number) {
+    const skip = (page - 1) * limit;
+    const where = { status: TenantStatus.ACTIVE };
+    const [items, total] = await Promise.all([
+      this.prisma.tenant.findMany({
+        skip,
+        take: limit,
+        where,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          logo: true,
+          _count: { select: { products: true } },
+        },
+        orderBy: { name: "asc" },
+      }),
+      this.prisma.tenant.count({ where }),
+    ]);
+    return { items, total, page, pageSize: limit, totalPages: Math.ceil(total / limit) };
+  }
+
   async getMyTenant(tenantId: string) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },

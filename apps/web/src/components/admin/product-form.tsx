@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { get, post, patch } from "@/lib/api";
-import { Product, Category, PaginatedResponse } from "../../types";
+import { Product, Category } from "../../types";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -24,7 +24,7 @@ const schema = z.object({
   sku: z.string().optional(),
   stock: z.coerce.number().int().min(0, "Stock must be >= 0"),
   lowStockThreshold: z.coerce.number().int().min(0).default(10),
-  categoryId: z.string().optional(),
+  categoryId: z.string().min(1, "Category is required"),
   status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).default("DRAFT"),
   isFeatured: z.boolean().default(false),
 });
@@ -47,11 +47,10 @@ export function ProductForm({ product, onClose }: Props) {
     product?.pricingTiers ?? [],
   );
 
-  const { data: catData } = useQuery<PaginatedResponse<Category>>({
+  const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["categories"],
-    queryFn: () => get<PaginatedResponse<Category>>("/categories"),
+    queryFn: () => get<Category[]>("/categories"),
   });
-  const categories = catData?.items ?? [];
 
   const {
     register,
@@ -84,14 +83,15 @@ export function ProductForm({ product, onClose }: Props) {
 
   const mutation = useMutation({
     mutationFn: (values: FormValues) => {
-      const payload = {
-        ...values,
+      const { status, ...rest } = values;
+      const base = {
+        ...rest,
         images: images.filter(Boolean),
-        pricingTiers: tiersEnabled ? tiers : null,
+        pricingTiers: tiersEnabled ? tiers : undefined,
       };
       return product
-        ? patch(`/seller/products/${product.id}`, payload)
-        : post("/seller/products", payload);
+        ? patch(`/seller/products/${product.id}`, { ...base, status })
+        : post("/seller/products", base);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["products"] });
@@ -168,16 +168,17 @@ export function ProductForm({ product, onClose }: Props) {
         {/* Category + Status */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label>Category</Label>
+            <Label>Category *</Label>
             <select
               className="flex h-9 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               {...register("categoryId")}
             >
-              <option value="">No category</option>
+              <option value="">Select a category</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+            {errors.categoryId && <p className="text-xs text-destructive">{errors.categoryId.message}</p>}
           </div>
           <div className="space-y-1">
             <Label>Status</Label>

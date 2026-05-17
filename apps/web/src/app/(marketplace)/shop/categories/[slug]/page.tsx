@@ -131,7 +131,15 @@ export default function CategoryPage() {
       const json = res.data;
       if (json.success) {
         const d = json.data as any;
-        setProducts(d?.items ?? d?.data ?? []);
+        const raw: any[] = d?.items ?? d?.data ?? [];
+        setProducts(raw.map((p: any) => ({
+          ...p,
+          price: Number(p.price),
+          comparePrice: p.comparePrice != null ? Number(p.comparePrice) : undefined,
+          sellerName: p.tenant?.name ?? p.sellerName ?? "",
+          sellerVerified: true,
+          wholesaleTiers: p.pricingTiers ?? p.wholesaleTiers,
+        })));
         setTotal(d?.total ?? 0);
       }
     } catch {

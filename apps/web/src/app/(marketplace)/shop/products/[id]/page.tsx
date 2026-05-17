@@ -67,14 +67,6 @@ function formatPrice(n: number) {
   return `Rs. ${n.toLocaleString("en-IN")}`;
 }
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
 function discountPct(original: number, current: number) {
   return Math.round(((original - current) / original) * 100);
 }
@@ -90,17 +82,6 @@ function maxBulkSaving(tiers: PriceTier[], basePrice: number) {
 function ProductSkeleton() {
   return (
     <div className="min-h-screen bg-gray-50 animate-pulse">
-      {/* Seller banner skeleton */}
-      <div className="bg-white border-b border-dashed border-gray-200 px-4 py-3 lg:px-6">
-        <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gray-200 shrink-0" />
-          <div className="flex-1 flex flex-col gap-2">
-            <div className="h-4 bg-gray-200 rounded w-40" />
-            <div className="h-3 bg-gray-200 rounded w-64" />
-          </div>
-        </div>
-      </div>
-      {/* Content skeleton */}
       <div className="max-w-7xl mx-auto px-4 py-6 lg:px-6 grid lg:grid-cols-[1.2fr_1fr] gap-8">
         <div className="flex flex-col gap-4">
           <div className="aspect-square bg-gray-200 rounded-xl" />
@@ -111,7 +92,8 @@ function ProductSkeleton() {
           </div>
         </div>
         <div className="flex flex-col gap-4">
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-3 bg-gray-200 rounded w-1/2" />
+          <div className="h-4 bg-gray-200 rounded w-1/3" />
           <div className="h-6 bg-gray-200 rounded w-5/6" />
           <div className="h-4 bg-gray-200 rounded w-1/3" />
           <div className="h-8 bg-gray-200 rounded w-1/2" />
@@ -228,10 +210,22 @@ export default function ProductDetailPage() {
     setError(null);
 
     publicApi
-      .get<{ success: boolean; data: ProductDetail; message?: string }>(`/products/${id}`)
+      .get<{ success: boolean; data: any; message?: string }>(`/products/${id}`)
       .then((res) => {
         if (!res.data.success) throw new Error(res.data.message || "Failed to load");
-        const p = res.data.data;
+        const raw = res.data.data;
+        const p: ProductDetail = {
+          ...raw,
+          price: Number(raw.price),
+          originalPrice: raw.comparePrice != null ? Number(raw.comparePrice) : undefined,
+          priceTiers: raw.pricingTiers ?? undefined,
+          seller: {
+            tenantId: raw.tenant?.id ?? raw.tenantId,
+            name: raw.tenant?.name ?? "",
+            slug: raw.tenant?.slug ?? "",
+            verified: true,
+          },
+        };
         setProduct(p);
         setCurrentPricePerUnit(p.price);
       })
@@ -251,7 +245,15 @@ export default function ProductDetailPage() {
       .then((res) => {
         if (!res.data.success) return;
         const d = res.data.data as any;
-        const arr: RelatedProduct[] = d?.items ?? d?.data ?? (Array.isArray(d) ? d : []);
+        const raw: any[] = d?.items ?? d?.data ?? (Array.isArray(d) ? d : []);
+        const arr: RelatedProduct[] = raw.map((p: any) => ({
+          ...p,
+          price: Number(p.price),
+          originalPrice: p.comparePrice != null ? Number(p.comparePrice) : undefined,
+          sellerName: p.tenant?.name ?? p.sellerName ?? "",
+          sellerVerified: true,
+          wholesaleTiers: p.pricingTiers ?? p.wholesaleTiers,
+        }));
         setRelatedProducts(arr.filter((p) => p.id !== id).slice(0, 3));
       })
       .catch(() => {});
@@ -346,62 +348,11 @@ export default function ProductDetailPage() {
     typeof product.ratingCount === "number" &&
     product.ratingCount >= 5;
 
-  // ── Seller banner content ─────────────────────────────────────────────────
-  const initials = getInitials(product.seller.name);
-
   return (
     <>
       <Toast message={toastMsg} visible={toastVisible} />
 
       <div className="min-h-screen bg-gray-50">
-        {/* ── Seller Banner ─────────────────────────────────────────────── */}
-        <div className="bg-white border-b border-dashed border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 py-3 lg:px-6 flex items-center gap-3">
-            {/* Avatar */}
-            <div className="shrink-0 w-9 h-9 lg:w-12 lg:h-12 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-sm lg:text-base select-none">
-              {initials}
-            </div>
-
-            {/* Seller info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-semibold text-gray-900 text-sm lg:text-base truncate">
-                  {product.seller.name}
-                </span>
-                {product.seller.verified !== false && (
-                  <span className="inline-flex items-center gap-0.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full shrink-0">
-                    ✓ verified seller
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                ★ 4.8 · 432 reviews · ships from Lalitpur · responds in 2h avg
-              </p>
-            </div>
-
-            {/* CTA buttons */}
-            <div className="shrink-0 flex items-center gap-2">
-              {/* Mobile: visit store pill only */}
-              <Link
-                href={`/shop/store/${product.seller.slug}`}
-                className="lg:hidden text-xs font-medium text-blue-600 border border-blue-200 px-3 py-1.5 rounded-full hover:bg-blue-50 transition-colors"
-              >
-                Visit store
-              </Link>
-              {/* Desktop: visit store + follow */}
-              <Link
-                href={`/shop/store/${product.seller.slug}`}
-                className="hidden lg:inline-flex items-center text-sm font-medium text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
-              >
-                Visit store
-              </Link>
-              <button className="hidden lg:inline-flex items-center text-sm font-medium text-gray-700 border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
-                + Follow
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* ── Mobile breadcrumb ─────────────────────────────────────────── */}
         <div className="lg:hidden bg-white px-4 py-2 text-xs text-gray-500 flex items-center gap-1 border-b border-gray-100">
           <Link href="/shop" className="hover:text-blue-600 transition-colors">Home</Link>
@@ -491,6 +442,30 @@ export default function ProductDetailPage() {
               <span>/</span>
               <span className="text-gray-700 font-medium truncate">{product.name}</span>
             </nav>
+
+            {/* Seller byline */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-gray-500">
+                by{" "}
+                <Link
+                  href={`/shop/store/${product.seller.slug}`}
+                  className="font-semibold text-blue-600 hover:underline"
+                >
+                  {product.seller.name}
+                </Link>
+              </span>
+              {product.seller.verified !== false && (
+                <span className="inline-flex items-center gap-0.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">
+                  ✓ verified
+                </span>
+              )}
+              <Link
+                href={`/shop/store/${product.seller.slug}`}
+                className="text-xs text-gray-400 hover:text-blue-600 transition-colors"
+              >
+                visit store →
+              </Link>
+            </div>
 
             {/* Product title */}
             <h1 className="text-xl font-bold text-gray-900 leading-snug lg:text-2xl">
